@@ -1,0 +1,10 @@
+<% if (f_fields = page.filter_form) && f_fields.any? %>
+  <div class="filter-form">
+    <%= form_for filter, admin_resource_filter_form_options(filter, page) do |f| %>
+      <% f_fields.each do |field| %>
+        <%= f.field field %>
+      <% end %>
+      <%= f.buttons submit_title: 'Filter', cancel_url: false, clean: true %>
+    <% end %>
+  </div>
+<% end %>

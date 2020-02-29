@@ -1,0 +1,42 @@
+<% content_for :head_tags do %>
+  <%#= javascript_include_tag '/js/tinymce/tinymce.min.js' %>
+  <%#= javascript_include_tag '/js/tinymce/jquery.tinymce.min.js' %>
+  <%= javascript_pack_tag 'vendor-wysiwyg.js', 'wysiwyg.js' %>
+  <%= stylesheet_pack_tag 'wysiwyg.css' %>
+<% end if page.with_editor? && !@modal %>
+
+<% if page.display_form_errors && errors = page.resource_errors(item, exclude_form_fields: true) and errors.any? %>
+  <div class="card card-validation-errors mb-3">
+    <div class="card-body text-danger">
+      <h4 class="card-title text-center"><%= page.t(:'form_errors.title') %></h4>
+      <ul>
+        <% errors.each do |msg| %>
+          <li class="card-text"><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  </div>
+<% end %>
+
+<div class="rapid-form">
+  <%= form_for item, resource_form_options(item, page, remote: @modal, small: @modal, html: {ref: 'inputForm'}) do |f| %>
+    <% page.page_params.each do |p_name, p_value| %>
+      <%= hidden_field_tag p_name, p_value %>
+    <% end %>
+    <%= render partial: 'form_fields', locals: { f: f, page: page, item: item, tabs: page.form_tabs(item) } %>
+    <% unless @modal || page.form_hide_buttons %>
+      <% if (button_partial_name = page.form_buttons_partial(item)) %>
+        <%= render partial: button_partial_name, locals: { f: f, page: page, item: item } %>
+      <% else %>
+        <div class="form-buttons">
+          <button type="submit" class="btn btn-primary btn-sm"><%= page.t(item.persisted? ? :'form_action.update' : :'form_action.create') %></button>
+          <%= resource_form_cancel_tag(page, item) %>
+          <%= resource_additional_form_buttons page.additional_form_buttons, item %>
+          <% if page.destroy_in_form && item.persisted? && policy(item)&.destroy? %>
+            <%= link_to 'Delete', url_for(action: :destroy, return_to: params[:return_to]), class: 'btn btn-sm btn-danger float-right', 'data-method' => 'DELETE', 'data-confirm' => 'Are you sure?' %>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>

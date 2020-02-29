@@ -62,6 +62,8 @@ module RapidResources
         field, *options = field if field.is_a?(Array)
         if options.is_a?(Array) &&  options.length > 1 && options[0].is_a?(Symbol) && options[1].is_a?(Hash) && options[1][:header] == true
           send(options[0], nil, field, **{ header: true })
+        elsif field.is_a?(RapidResources::CollectionField)
+          field.title
         else
           page.field_title(field)
         end

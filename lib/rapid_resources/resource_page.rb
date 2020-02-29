@@ -14,14 +14,13 @@ module RapidResources
     OPLOG_OBJECT_TYPE = nil
 
     attr_reader :name, :sort_params, :current_user
-    attr_accessor :return_to, :action
+    attr_accessor :return_to
     attr_accessor :jsonapi
 
     # fixme: get rid of model_class, name and action
-    def initialize(current_user, name: nil, model_class: nil, action: nil, url_helpers: nil)
+    def initialize(current_user, name: nil, model_class: nil, url_helpers: nil)
       @name = name
       @model_class = model_class
-      @action = action&.to_sym
       @current_user = current_user
       @sort_params = {}
       @sort_columns = []
@@ -224,17 +223,6 @@ module RapidResources
       [].freeze
     end
 
-    def fields
-      case @action
-      when :index
-        self.class::COLLECTION_FIELDS
-      when :form
-        self.class::FORM_FIELDS
-      else
-        []
-      end
-    end
-
     def form_field(object, field_name)
       form(object).find {|field| field.name == field_name}
     end
@@ -261,21 +249,7 @@ module RapidResources
     end
 
     def actions
-      case @action
-      when :index
-        collection_actions
-      else
-        []
-      end
-    end
-
-    def commands
-      case @action
-      when :index
-        self.class::COLLECTION_COMMANDS
-      else
-        []
-      end
+      collection_actions
     end
 
     def default_order

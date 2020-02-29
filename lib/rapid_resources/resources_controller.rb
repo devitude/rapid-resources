@@ -267,21 +267,16 @@ module RapidResources
 
     def page
       @page ||= begin
-        page = init_page(extra_params: true)
+        page = init_page
         setup_page(page)
         page
       end
     end
 
     # FIXME: migrate all pages and get rid of extra_params
-    def init_page(page_class: nil, extra_params: false)
+    def init_page(page_class: nil)
       page_class ||= self.class.page_class
-      page_action = item_actions.include?(params[:action]) ? :form : params[:action].to_sym
-      if extra_params
-        resource_resolver.page(page_action, current_user, page_class: page_class, url_helpers: self)
-      else
-        page_class.new(current_user)
-      end
+      resource_resolver.page(current_user, page_class: page_class, url_helpers: self)
     end
 
     def setup_page(page)

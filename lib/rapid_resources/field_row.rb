@@ -34,17 +34,7 @@ module RapidResources
     def each_col
       return unless block_given?
       @fields.each do |field, col|
-        col = if col.is_a? Numeric
-          "col-md-#{col}"
-        elsif col == :auto
-          'col-auto'
-        elsif col.present?
-          col
-        else
-          nil
-        end
-
-        col_class = col ? col : check_box_list? ? nil : @empty_col_class
+        col_class = col ? "col-md-#{col}" : check_box_list? ? nil : @empty_col_class
         yield field, col_class
       end
     end

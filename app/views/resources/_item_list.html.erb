@@ -4,42 +4,31 @@
   -%>
 
 <%= render partial: 'filter_form', locals: {page: page, filter: @filter} if @filter && !skip_filter %>
+<%= resources_render_index_table_actions(page, items) if !skip_index_actions %>
 
-<div class="card">
-  <%= resources_render_index_table_actions(page, items) if !skip_index_actions %>
-  <% if page.render_index_actions_with_table && (actions = resource_index_actions(page)) && !actions.blank? %>
-  <div class="card-header btn-wrapper">
-    <% actions.each do |action_html| %>
-      <%= action_html %>
-    <% end %>
-  </div>
-  <% end %>
-  <div class="table-responsive">
-    <table class="<%= page.index_table_class %>">
-      <thead>
-        <tr>
-          <% page.collection_fields.each do |f| %>
-            <%= resource_header(page, f) %>
-          <% end %>
-          <% unless page.actions.blank? -%>
-            <th class="table-actions"></th>
-          <% end %>
-        </tr>
-      </thead>
-      <tbody>
-      <% items.each.with_index(1) do |item, idx| %>
-        <tr<%= resource_table_row_css_class(page, item) %>>
-          <% page.collection_fields.each do |f| %>
-            <td class="<%= page.table_cell_css_class f, resource: item %>"><%= resource_field page, item, f, idx %></td>
-          <% end %>
-          <% unless page.actions.blank? -%>
-            <td class="table-actions">
-              <%= resource_index_item_actions(page, item) %>
-            </td>
-          <% end %>
-        </tr>
+<table class="<%= page.index_table_class %>">
+  <thead>
+    <tr>
+      <% page.collection_fields.each do |f| %>
+        <%= resource_header(page, f) %>
       <% end %>
-      </tbody>
-    </table>
-  </div>
-</div>
+      <% unless page.actions.blank? -%>
+        <th class="table-actions"></th>
+      <% end %>
+    </tr>
+  </thead>
+  <tbody>
+  <% items.each.with_index(1) do |item, idx| %>
+    <tr<%= resource_table_row_css_class(page, item) %>>
+      <% page.collection_fields.each do |f| %>
+        <td class="<%= page.table_cell_css_class f, resource: item %>"><%= resource_field page, item, f, idx %></td>
+      <% end %>
+      <% unless page.actions.blank? -%>
+        <td class="table-actions">
+          <%= resource_index_item_actions(page, item) %>
+        </td>
+      <% end %>
+    </tr>
+  <% end %>
+  </tbody>
+</table>

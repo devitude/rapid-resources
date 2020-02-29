@@ -65,6 +65,14 @@ module RapidResources
       authorize_resource :index?
 
       respond_to do |format|
+        # format.xlsx do
+        #   items, columns = grid_items
+        #   xlsx_path = generate_xlsx_file(items, columns)
+        #   send_file xlsx_path, filename: xlsx_filename, type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        # end
+        format.jsonapi do
+          grid_list
+        end
         format.any do
           if page.index_html
             items = load_items
@@ -85,14 +93,6 @@ module RapidResources
             items: items,
             page: page,
           } unless response_rendered?
-        end
-        format.xlsx do
-          items, columns = grid_items
-          xlsx_path = generate_xlsx_file(items, columns)
-          send_file xlsx_path, filename: xlsx_filename, type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        end
-        format.jsonapi do
-          grid_list
         end
       end
     end
@@ -121,16 +121,22 @@ module RapidResources
           json_data.merge! get_additional_json_data
           render json: json_data #, formats: [:json]
         end
+        format.jsonapi do
+          render_jsonapi_form
+        end
       end
     end
 
     def create
       authorize_resource :create?
 
-      if save_resource(@resource, resource_params)
+      result = save_resource(@resource, resource_params)
+      if result.ok?
         save_response(:create)
+        return
       end
 
+      save_response(:create, false)
       return if response_rendered?
 
       r_params = {
@@ -143,14 +149,25 @@ module RapidResources
       respond_to do |format|
         format.html { render :new, r_params}
         format.json do
-          @modal = true
-          # @html = render_to_string(:new, r_params.merge(layout: false, formats: [:html]))
-          # render :new, formats: [:json]
-          json_data = {
-            'html' => render_to_string(:new, r_params.merge(layout: false, formats: [:html]))
-          }
-          json_data.merge! get_additional_json_data
-          render json: json_data #, formats: [:json]
+          if jsonapi_form?
+            render_jsonapi_form(error: result)
+          else
+            @modal = true
+            # @html = render_to_string(:new, r_params.merge(layout: false, formats: [:html]))
+            # render :new, formats: [:json]
+            json_data = {
+              'html' => render_to_string(:new, r_params.merge(layout: false, formats: [:html]))
+            }
+            json_data.merge! get_additional_json_data
+            render json: json_data #, formats: [:json]
+          end
+        end
+        format.jsonapi do
+          if jsonapi_form?
+            render_jsonapi_form(error: result)
+          else
+            render_jsonapi_resource_error
+          end
         end
       end
     end
@@ -187,15 +204,18 @@ module RapidResources
           json_data = {
             'html' => render_to_string(r_params.merge(layout: false, formats: [:html]))
           }
-          if page.destroy_in_form && policy(@resource).destroy?
+          if page.form(@resource).show_destroy_btn && resource_action_permitted?(:destroy?)
             begin
               json_data['deleteUrl'] = url_for(action: :destroy)
             rescue => ex
-              OspUtils.capture_exception(ex)
+              Utils.report_exception(ex)
             end
           end
           json_data.merge! get_additional_json_data
           render json: json_data #, formats: [:json]
+        end
+        format.jsonapi do
+          render_jsonapi_form
         end
       end
     end
@@ -205,9 +225,13 @@ module RapidResources
 
       yield if block_given?
 
-      if save_resource(@resource, resource_params)
+      result = save_resource(@resource, resource_params)
+      if result.ok?
         save_response(:update)
+        return
       end
+
+      save_response(:update, false)
 
       return if response_rendered?
 
@@ -221,20 +245,27 @@ module RapidResources
       respond_to do |format|
         format.html { render :edit, r_params}
         format.json do
-          @modal = true
-          # @html = render_to_string(:new, r_params.merge(layout: false, formats: [:html]))
-          # render :new, formats: [:json]
-          json_data = {
-            'html' => render_to_string(:edit, r_params.merge(layout: false, formats: [:html]))
-          }
-          json_data.merge! get_additional_json_data
-          render json: json_data #, formats: [:json]
+          if jsonapi_form?
+            render_jsonapi_form(error: result)
+          else
+            @modal = true
+            # @html = render_to_string(:new, r_params.merge(layout: false, formats: [:html]))
+            # render :new, formats: [:json]
+            json_data = {
+              'html' => render_to_string(:edit, r_params.merge(layout: false, formats: [:html]))
+            }
+            json_data.merge! get_additional_json_data
+            render json: json_data #, formats: [:json]
+          end
+        end
+        format.jsonapi do
+          render_jsonapi_form(error: result)
         end
       end
     end
 
     def destroy
-      authorize @resource, :destroy?
+      authorize_resource :destroy?
       destroy_resource
 
       return if response_rendered?
@@ -253,6 +284,9 @@ module RapidResources
       super << 'resources'
     end
 
+    def jsonapi_form?
+      params[:jsonapi_form] == '1'
+    end
 
     # FIXME: use ActionController::Metal.performed? instead
     def response_rendered?
@@ -266,24 +300,38 @@ module RapidResources
     end
 
     def page
-      @page ||= begin
-        page = init_page
-        setup_page(page)
-        page
-      end
+      @page ||= create_page
     end
 
     # FIXME: migrate all pages and get rid of extra_params
-    def init_page(page_class: nil)
+    def create_page(page_class: nil, resource: nil)
       page_class ||= self.class.page_class
-      resource_resolver.page(current_user, page_class: page_class, url_helpers: self)
+      new_page = resource_resolver.page(current_user, page_class: page_class, resource: resource, url_helpers: self)
+      if expose_items = page_expose
+        new_page.expose(expose_items)
+      end
+      new_page
+    end
+
+    def page_expose
+      nil
     end
 
     def setup_page(page)
     end
 
+    def jsonapi_params_deserializer
+      nil
+    end
+
     def resource_params
-      params.require(@resource_resolver.params_name).permit(page.permitted_attributes(@resource))
+      if request.format.jsonapi? && (deserializer = jsonapi_params_deserializer)
+        resp = deserializer.call(params[:_jsonapi].to_unsafe_h)
+        r_params = ActionController::Parameters.new(@resource_resolver.params_name => resp)
+        r_params.require(@resource_resolver.params_name).permit(page.permitted_attributes(@resource))
+      else
+        params.require(@resource_resolver.params_name).permit(page.permitted_attributes(@resource))
+      end
     end
 
     def filter_params(page)
@@ -301,13 +349,12 @@ module RapidResources
       items
     end
 
-    def on_before_load_res; end
-
     def load_res
       run_callbacks :load_res do
-        on_before_load_res
-        load_resource
-        load_additional_resources
+        @page ||= create_page
+        @resource ||= load_resource
+        @page.resource = @resource
+        instance_variable_set("@#{resource_var_name}".to_sym, @resource)
       end
     end
 
@@ -316,30 +363,29 @@ module RapidResources
     end
 
     def load_resource
-      single = false
-
+      model = resource_resolver.model_class
       case params[:action]
-      when *item_actions
-        single = true
+      when *load_item_actions
+        load_current_resource(model)
       when 'new', 'create'
-        model = resource_resolver.model_class
-        @resource = respond_to?(:build_model, true) ? build_model : (model.respond_to?(:build_new) ? model.build_new : model.new)
-      end
-
-      if single
-        @resource = load_current_resource
-        instance_variable_set("@#{resource_var_name}".to_sym, @resource)
+        if respond_to?(:build_model, true)
+          build_model
+        elsif model.respond_to?(:build_new)
+          model.build_new
+        else
+          model.new
+        end
+      else
+        nil
       end
     end
 
-    def item_actions
+    def load_item_actions
       ['edit', 'update', 'destroy', 'show']
     end
 
     # in case a resource initializes it's model with some custom logick
     # def build_model; end
-
-    def load_additional_resources; end
 
     def index_route_url
       { action: :index }
@@ -357,17 +403,16 @@ module RapidResources
       resource_resolver.resource_var_name
     end
 
-    def load_current_resource
+    def load_current_resource(model = nil, resource_page = nil)
       model ||= resource_resolver.model_class
+      resource_page ||= page
 
-      resource = if page.use_pundit_scope
-        policy_scope(model)
+      resource = if resource_page.use_page_scope
+        resource_page.default_scope
       else
         model.respond_to?(:alive) ? model.alive : model
       end
-      resource
-        .where(model.primary_key => current_resource_id)
-        .first!
+      resource.where(model.primary_key => current_resource_id).first!
     end
 
     def destroy_resource
@@ -380,13 +425,22 @@ module RapidResources
       end
     end
 
-    def save_response(action)
+    def save_response(action, saved = true)
+      return unless saved
+
       respond_to do |format|
         format.html { redirect_to redirect_route(action) }
         format.json do
-          json_data = {'status' => 'success'}
-          json_data.merge! get_additional_json_data
-          render json: json_data
+          if jsonapi_form?
+            render jsonapi: @resource, expose: { url_helpers: self, current_user: current_user }, status: 201
+          else
+            json_data = {'status' => 'success'}
+            json_data.merge! get_additional_json_data
+            render json: json_data
+          end
+        end
+        format.jsonapi do
+          render_jsonapi_resource
         end
       end
     end
@@ -396,21 +450,24 @@ module RapidResources
     end
 
     def authorize_resource(query)
-      case query
-      when :index?
-        authorize resource_resolver.model_class, query
-      else
-        authorize @resource, query
-      end
+      nil
+    end
+
+    def resource_action_permitted?(action)
+      false
     end
 
     def save_resource(resource, params)
-      resource.update(resource_params)
+      resource.assign_attributes(resource_params)
+      if resource.valid?(:form) && resource.save
+        Result.ok
+      else
+        Result.err
+      end
     end
 
     def grid_items(grid_page: nil, grid_items: nil)
       grid_page ||= page
-      grid_page.jsonapi = true
 
       filter_params = if params.key?(:filter)
         params.fetch(:filter, {}).permit(*grid_page.filter_params).to_h
@@ -425,145 +482,18 @@ module RapidResources
       return [grid_items, grid_page.collection_fields.dup]
     end
 
-    # def grid_items(grid_page: nil, grid_items: nil)
-    #   grid_page ||= page
-    #   grid_page.jsonapi = true
-
-    #   filter_params = params.permit(*grid_page.filter_params).to_h
-    #   if filter_params.count.zero?
-    #     filter_params = params.fetch(:filter, {}).permit(*grid_page.filter_params).to_h
-    #   end
-
-    #   sort_param = params[:sort].to_s.freeze
-
-    #   transform_keys = grid_page.transform_jsonapi_keys
-
-    #   columns = grid_page.collection_fields.map do |fld|
-    #     field = [*fld].first
-
-    #     field_name = transform_keys ? field.to_s.camelize(:lower) : field.to_s
-
-    #     if fld.is_a?(Array) && fld.count > 1 && fld[1] == :idx_column
-    #       { name: ':idx', title: '#', sortable: false, sorted: false }
-    #     elsif fld.is_a?(Array) && fld.count > 1 && fld[1] == :actions_column
-    #       { name: ':actions', title: '', sortable: false, sorted: false }
-    #     elsif fld.is_a?(Array) && fld.count > 1 && fld[1] == :custom_column
-    #       { name: field_name, title: grid_page.field_title(field), sortable: false, sorted: false, type: 'custom' }
-    #     elsif fld.is_a?(Array) && fld.count > 1 && fld[1] == :link_to
-    #       { name: field_name, title: grid_page.field_title(field), sortable: grid_page.column_sortable?(field), sorted: false, type: 'link_to' }
-    #     else
-    #       { name: field_name, title: grid_page.field_title(field), sortable: grid_page.column_sortable?(field), sorted: false }
-    #     end
-    #   end
-
-    #   sort_arg = nil
-    #   if sort_param.present?
-    #     columns.each do |col|
-    #       if sort_param == col[:name]
-    #         col[:sorted] = 'asc'
-    #         sort_arg = "#{col[:name]}:asc"
-    #       elsif sort_param == "-#{col[:name]}"
-    #         col[:sorted] = 'desc'
-    #         sort_arg = "#{col[:name]}:desc"
-    #       end
-    #     end
-    #   end
-
-    #   unless sort_arg
-    #     default_sort = grid_page.default_sort_arg
-    #     if default_sort
-    #       sort_col = default_sort[0].to_s
-    #       col = columns.detect { |c| c[:name] == sort_col }
-    #       if col
-    #         col[:sorted] = default_sort[1].to_s
-    #         sort_arg = default_sort.join(':')
-    #       end
-    #     end
-
-    #     unless sort_arg
-    #       col = columns.detect { |c| c[:sortable] }
-    #       if col
-    #         col[:sorted] = 'asc'
-    #         sort_arg = "#{col[:name]}:asc"
-    #       end
-    #     end
-    #   end
-
-    #   filter_params[:sort] = sort_arg if sort_arg
-    #   grid_items ||= grid_page.load_items(filter_params: filter_params)
-    #   return [grid_items, columns]
-    # end
-
-    # def grid_list(grid_page: nil, grid_items: nil, jsonapi_include: nil, additional_meta: nil)
-    #   grid_page ||= page
-
-    #   grid_items, columns = grid_items(grid_page: grid_page, grid_items: grid_items)
-
-    #   if grid_page.grid_paging && grid_items.respond_to?(:page)
-    #     grid_items = grid_items.page params[:page]
-    #     if per_page = grid_page.per_page
-    #       grid_items = grid_items.per(per_page)
-    #     end
-    #     grid_items = grid_items.page(1) if grid_items.current_page > grid_items.total_pages
-    #     paginator = Paginator.new(total_pages: grid_items.total_pages, current_page: grid_items.current_page, per_page: grid_items.current_per_page)
-    #   end
-
-    #   if grid_page.collection_actions.include?(:edit)
-    #     # columns << { name: ':actions', title: '', sortable: false, sorted: false }
-    #     columns << CollectionField.new(':actions', title: '', sortable: false)
-    #   end
-
-    #   filters = []
-    #   (grid_page.grid_filters(params.permit(*grid_page.filter_params).to_h) || []).each do |filter|
-    #     filters << filter
-    #     # page_filters = page.grid_filters.dup || []
-    #     # filters << 'text' if page_filters.include?(:text)
-    #   end
-
-    #   columns.map! do |col|
-    #     if col.is_a?(CollectionField)
-    #       col.to_jsonapi_column
-    #     else
-    #       col
-    #     end
-    #   end
-    #   meta_fields = {
-    #     columns: columns,
-    #     filters: filters,
-    #     pages: paginator&.pages,
-    #     current_page: paginator&.current_page,
-    #     total_pages: paginator&.total_pages,
-    #     page_first_index: paginator&.first_idx_in_page || 1,
-    #     header_actions: grid_page.grid_header_actions,
-    #     additional_header_actions: grid_page.grid_additional_header_actions,
-    #   }
-    #   meta_fields.merge!(additional_meta) if additional_meta.is_a?(Hash)
-    #   meta_fields = grid_page.grid_meta(meta_fields, self)
-
-    #   jsonapi_index_response(grid_items,
-    #     serializers: grid_page.grid_serializers,
-    #     meta: grid_meta(meta_fields),
-    #     links: grid_links(grid_page),
-    #     render_fields: grid_page.grid_fields,
-    #     expose: grid_page.grid_expose,
-    #     jsonapi_include: jsonapi_include,
-    #     )
-    # end
-
     def grid_list(grid_page: nil, grid_items: nil, jsonapi_include: nil, additional_meta: nil)
       grid_page ||= page
 
       grid_items, columns = grid_items(grid_page: grid_page, grid_items: grid_items)
 
-      total_items = 0
       if grid_page.grid_paging && grid_items.respond_to?(:page)
         grid_items = grid_items.page params[:page]
         if per_page = grid_page.per_page
           grid_items = grid_items.per(per_page)
         end
-        total_items = grid_items.total_count
         grid_items = grid_items.page(1) if grid_items.current_page > grid_items.total_pages
-        paginator = GridPaginator.new(total_pages: grid_items.total_pages, current_page: grid_items.current_page, per_page: grid_items.limit_value)
+        paginator = GridPaginator.new(total_pages: grid_items.total_pages, current_page: grid_items.current_page, per_page: grid_items.current_per_page)
       end
 
       if grid_page.collection_actions.include?(:edit)
@@ -572,19 +502,15 @@ module RapidResources
 
       meta_fields = {
         columns: columns.map(&:to_jsonapi_column),
-        filters: grid_page.grid_filters.select {|f| f.visible }.map(&:to_jsonapi_filter),
+        filters: grid_page.grid_filters.map(&:to_jsonapi_filter),
         pages: paginator&.pages,
         current_page: paginator&.current_page,
         total_pages: paginator&.total_pages,
-        total_items: total_items,
         page_first_index: paginator&.first_idx_in_page || 1,
-        header_actions: grid_page.grid_header_actions,
+        headerActions: grid_page.grid_header_actions,
         additional_header_actions: grid_page.grid_additional_header_actions,
       }
       meta_fields.merge!(additional_meta) if additional_meta.is_a?(Hash)
-
-      # FIXME: grid_page grid_meta deprecated?
-      meta_fields = grid_page.grid_meta(meta_fields, self)
 
       jsonapi_index_response(grid_items,
         serializers: grid_page.grid_serializers,
@@ -593,13 +519,11 @@ module RapidResources
         render_fields: grid_page.grid_fields,
         expose: grid_page.grid_expose,
         jsonapi_include: jsonapi_include,
-        grid_page: grid_page,
         )
     end
 
-    def jsonapi_index_response(items, serializers: {}, meta: nil, links: nil, expose: {}, render_fields: nil, jsonapi_include: nil, grid_page: nil)
-      renderer = DefaultJsonapiRenderer.new
-
+    def jsonapi_index_response(items, serializers: {}, meta: nil, links: nil, expose: {}, render_fields: nil, jsonapi_include: nil)
+      renderer = JSONAPI::Serializable::Renderer.new
       jsonapi_options = {
         class: serializers,
         meta: meta,
@@ -609,8 +533,6 @@ module RapidResources
           current_user: current_user,
         }.merge(expose || {})
       }
-      grid_page ||= page
-      jsonapi_options[:transform_keys] = true if grid_page.transform_jsonapi_keys
       jsonapi_options[:fields] = render_fields if render_fields
       jsonapi_options[:include] = jsonapi_include if jsonapi_include
       json_data = renderer.render(items, jsonapi_options)
@@ -618,13 +540,7 @@ module RapidResources
     end
 
     def grid_links(page)
-      links = if page.index_actions.include?(:new)
-        { new: url_for({ action: :new}) }
-      else
-        nil
-      end
-
-      page.grid_links(links)
+      { new: url_for({ action: :new}) } if page.index_actions.include?(:new)
     end
 
     def grid_meta(attributes)
@@ -647,6 +563,58 @@ module RapidResources
       temp_path = Rails.root.join('tmp', "items-#{Time.now.to_f}#{uid}.xlsx")
       xlsx.serialize temp_path
       temp_path
+    end
+
+    def render_jsonapi_form(error: nil, form_id: nil, form_page: nil)
+      form_page ||= page
+
+      old_modal = @modal
+      old_display_errors = form_page.display_form_errors
+      @modal = true
+      form_page.display_form_errors = false
+      form_data = ResourceFormData.new(id: "frm-#{resource_resolver.model_name}") #(id: 'new-project')
+      # form_data.submit_title = @resource.new_record? ? 'Create new project' : 'Save project' # page.t(@resource.persisted? ? :'form_action.update' : :'form_action.create')
+      form_data.submit_title = form_page.t(@resource.persisted? ? :'form_action.update' : :'form_action.create')
+      form_data.html = render_to_string(partial: 'form',
+        formats: [:html],
+        locals: {
+          page: form_page,
+          item: @resource,
+          jsonapi_form: 1,
+        })
+      @modal = old_modal
+      form_page.display_form_errors = old_display_errors
+
+      if error.present?
+        if error.is_a?(Result) && error.error.present?
+          form_data.meta = { error: { message: "An error occured: #{error.error}"} }
+        else
+          form_data.meta = { error: { message: 'An error occured', details: @resource.error_messages.map(&:second) } }
+        end
+        render jsonapi: form_data, status: 422
+      else
+        render jsonapi: form_data, expose: { url_helpers: self, current_user: current_user }
+      end
+    end
+
+    def render_jsonapi_resource
+      render jsonapi: @resource, expose: { url_helpers: self, current_user: current_user }, status: 200
+    end
+
+    def render_jsonapi_resource_error
+      render jsonapi_errors: @resource.errors, status: 422
+    end
+
+    def render_page(page, resource, template, options = {})
+      return if response_rendered?
+      render_options = {
+        locals: {
+          item: resource,
+          page: page,
+          action: template,
+        }
+      }.merge(options)
+      render render_options
     end
 
     private

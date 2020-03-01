@@ -3,13 +3,57 @@ module RapidResources
 
     # attr_reader :fields
     attr_reader :tabs
-    def initialize(&block)
+    attr_reader :resource
+    attr_reader :show_destroy_btn
+    attr_reader :btn_wrap_col
+    attr_reader :destroy_confirmation_code
+    attr_reader :destroy_confirmation_message
+    attr_reader :destroy_confirmation_title
+    attr_reader :destroy_confirmation_action_title
+    attr_reader :destroy_confirmation_cancel_title
+    attr_reader :message
+
+    def initialize(show_destroy_btn: false, btn_wrap_col: nil, destroy_confirmation: nil, message: nil, &block)
       @__cur_fields = nil
       @__cur_tab = nil
       @tabs = []
       get_current_tab # ensure we have one tab
       instance_eval &block if block_given?
       @field_stack = nil
+
+      @btn_wrap_col = btn_wrap_col
+
+      @show_destroy_btn = show_destroy_btn
+
+      destroy_confirmation = {} unless destroy_confirmation.is_a?(Hash)
+      @destroy_confirmation_code = destroy_confirmation[:code]
+      @destroy_confirmation_message = destroy_confirmation[:message]
+      @destroy_confirmation_message = 'Are you sure?' if @destroy_confirmation_message.blank?
+
+      @destroy_confirmation_title = destroy_confirmation[:title]
+      @destroy_confirmation_title = 'Delete confirmation' if @destroy_confirmation_title.blank?
+
+      @destroy_confirmation_action_title = destroy_confirmation[:action_title]
+      @destroy_confirmation_action_title = 'Delete' if destroy_confirmation_action_title.blank?
+
+      @destroy_confirmation_cancel_title = destroy_confirmation[:cancel_title]
+      @destroy_confirmation_cancel_title = 'Cancel' if destroy_confirmation_cancel_title.blank?
+
+      @message = message
+    end
+
+    def has_form_fields?
+      @message.blank?
+    end
+
+    def message_title
+      return nil if @message.blank?
+
+      if @message.is_a?(String)
+        @message
+      else
+        @message[:title]
+      end
     end
 
     def field(*args)

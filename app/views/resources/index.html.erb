@@ -1,6 +1,6 @@
 <% if page_title = page.t(:index_title) and !page_title.blank? %><h1 class="main-title"><%= page_title %></h1><% end %>
 <% if page.index_html %>
-  <% if !page.render_index_actions_with_table && (actions = resource_index_actions(page)) && !actions.blank? %>
+  <% if (actions = resource_index_actions(page)) && !actions.blank? %>
   <div class="toolbar mb-2">
     <% actions.each do |action_html| %>
       <%= action_html %>
@@ -10,5 +10,5 @@
   <%= render partial: 'item_list', locals: {page: page, items: items} %>
   <%= render partial: 'item_list_after', locals: { page: @page, items: items } %>
 <% else %>
-  <%= resource_page_grid_component_tag page %>
+  <%= content_tag page.grid_component, '', 'list-url' => url_for(page.grid_list_url), 'ref' => 'indexGrid' %>
 <% end %>

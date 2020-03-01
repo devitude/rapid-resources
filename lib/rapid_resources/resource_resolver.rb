@@ -39,12 +39,12 @@ module RapidResources
       end
     end
 
-    def page(current_user, page_class: nil, url_helpers: nil)
+    def page(current_user, page_class: nil, resource: nil, url_helpers: nil)
       unless page_class
         @page_class ||= Object.const_get("#{@controller_path.singularize.camelize}Page")
         page_class = @page_class
       end
-      page_class.new(current_user, name: @controller_path, model_class: self.model_class, url_helpers: url_helpers)
+      page_class.new(current_user, name: @controller_path, model_class: self.model_class, resource: resource, url_helpers: url_helpers)
     end
 
   end

@@ -7,10 +7,6 @@ module RapidResources
 
     # include Rails.application.routes.url_helpers
 
-    alias_method :super_text_field, :text_field
-    alias_method :super_check_box, :check_box
-    alias_method :super_radio_button, :radio_button
-
     attr_accessor :output_buffer
     def initialize(object_name, object, template, options)
       super
@@ -19,8 +15,8 @@ module RapidResources
       @small = options[:small]
 
       required_fields_context = @page.required_fields_context(object)
-      required_fields_context, required_fields_context_data = required_fields_context if required_fields_context.is_a?(Array)
-      @required_fields = object.class.respond_to?(:required_fields) ? object.class.required_fields(required_fields_context, required_fields_context_data) : []
+      @required_fields = object.class.respond_to?(:required_fields) ? object.class.required_fields(required_fields_context) : []
+
       @context_stack = []
     end
 
@@ -125,25 +121,10 @@ module RapidResources
         options[:class] = css_class.join(' ')
       end
 
-      help_tooltip = options.delete(:help_tooltip)
-      help_tooltip_class = options.delete(:help_tooltip_class)
-      help_text = options[:help_text]
-      help_tooltip_text = nil
-      if help_tooltip
-        help_tooltip_text = options.delete(:help_tooltip_text)
-        if help_tooltip_text.nil?
-          help_tooltip_text = options.delete(:help_text)
-          help_text = nil
-        end
-      end
-      description = options.delete(:description)
-
-      field_required = options.delete(:required)
-
       control_html = case type
       when :text
-        f_value = options.delete(:value) || @object.send(name)
-        text_field name, f_value, options
+        options[:value] = @object.send(name) unless options.key?(:value) #f_value = options.delete(:value) || @object.send(name)
+        text_field name, options
       when :hidden
         hidden_field name, options
       when :text_area
@@ -197,10 +178,8 @@ module RapidResources
         g_label = options.delete(:global_label)
         html_options = options.dup
         options.delete(:help_text)
-        help_text = nil
-        help_tooltip = false
         options[:label] = g_label.blank? ? false : g_label
-        check_box(name, @object.send(name), html_options)
+        check_box(name, html_options)
       when :check_box_list
         items = options.delete(:items) || []
         check_box_list(name, items, options)
@@ -256,17 +235,11 @@ module RapidResources
         content_tag :p, "Invalid field: '#{type}'", class: 'form-control-static text-danger'
       end
 
-      additional_group_classes = [*options.delete(:form_group_css_class)]
-      wrap_ref = options.delete(:wrap_ref)
-
+      additional_group_class = options.delete(:form_group_css_class)
       if wrap_controls
-        additional_group_classes.unshift('form-group')
-        additional_group_classes << " #{wrap_col.is_a?(Numeric) ? "col-md-#{wrap_col}" : wrap_col}" unless wrap_col.blank?
-        additional_group_classes << 'with-help-tooltip' if help_tooltip
-
-        wrap_options = { class: additional_group_classes.join(' ') }
-        wrap_options[:ref] = wrap_ref if skip_form_row && wrap_ref.present?
-        wrap_html = content_tag :div, wrap_options do
+        help_text = options.delete(:help_text)
+        wrap_col = " #{wrap_col.is_a?(Numeric) ? "col-md-#{wrap_col}" : wrap_col}" unless wrap_col.blank?
+        wrap_html = content_tag :div, class: "form-group#{wrap_col} #{additional_group_class}" do
           control_class = form_control_class + ' input-sm'
           if type != :hidden && options[:label] != false && (name || options[:label])
             opts = {}
@@ -275,48 +248,19 @@ module RapidResources
               options[:label]
             else
               # object.class.human_attribute_name(name)
-              # name
-              txt = object.class.human_attribute_name(name, form: true)
-              txt
+              name
             end
-            label_css_classes = []
-            label_css_classes << 'required' if field_required || @required_fields.include?(name) || (@required_fields & validation_keys).count.positive?
-            label_css_classes << 'with-help-tooltip' if help_tooltip
-            opts[:class] = label_css_classes.join(' ') if label_css_classes.count.positive?
-
-            if help_tooltip
-              orig_text = label_text
-              orig_text = object.class.human_attribute_name(orig_text) unless orig_text.is_a?(String)
-
-              label_text = ''.html_safe
-              label_text << content_tag(:span, orig_text, class: 'text')
-              label_text << content_tag(:span, '',
-                class: help_tooltip_class || 'glyphicons help',
-                'data-toggle' => 'tooltip',
-                title: help_tooltip_text
-              )
-              concat label(name, label_text, opts)
-            else
-              concat label(name, label_text, opts)
-            end
+            opts[:class] = 'required' if @required_fields.include?(name)
+            concat label(label_text, opts)
           else
             control_class = "#{control_class}"
           end
-          if description.present?
-            description = safe_join(description, raw('<br>')) if description.is_a?(Array)
-            concat content_tag(:p, description, class: 'form-text description')
-          end
           # concat content_tag :div, control_html, class: control_class
           concat control_html
-          concat(content_tag(:small, help_text, class: 'form-text text-muted')) if help_text.present?
+          concat content_tag(:small, help_text, class: 'form-text text-muted') if help_text.present?
           concat content_tag(:div, errors.join('; '), class: 'invalid-feedback') if errors.any?
         end
-
-        unless skip_form_row
-          row_options = { class: 'form-row' }
-          row_options[:ref] = wrap_ref if wrap_ref.present?
-          wrap_html = content_tag(:div, wrap_html, row_options)
-        end
+        wrap_html = content_tag(:div, wrap_html, class: 'form-row') unless skip_form_row
 
         wrap_html
       else
@@ -352,28 +296,89 @@ module RapidResources
       end
     end
 
-    def text_field(name, value, html_options = {})
-      css_class = [form_control_class, html_options.delete(:class)].compact.join(' ')
-      html_options = html_options.merge(value: value, class: css_class)
-      super_text_field(name, html_options)
+    def text_field(name, options = {})
+      options[:class] = [form_control_class, options[:class]].compact.join(' ')
+
+      if options[:scope]
+        scoped_field(:text_field, name, options)
+      else
+        super(name, options)
+      end
     end
 
-    def check_box(name, value, html_options = {})
+    def hidden_field(name, options = {})
+      if options[:scope]
+        scoped_field(:hidden_field, name, options)
+      elsif options[:array_idx]
+        scoped_field(:hidden_field, name, options)
+      else
+        super(name, options)
+      end
+    end
+
+    def extract_scope(options)
+      options = @default_options.merge(options)
+
+      scope, scoped_object = options.delete(:scope)
+      options[:object] = scoped_object if scoped_object
+
+      [options, scope, scoped_object]
+    end
+
+    def scoped_field(field_name, method, options)
+      # cant use objectify_options(options) because that method overrides :options key
+
+      options, scope, scoped_object = extract_scope(options)
+
+
+      # options, scope, scoped_object = if options[:scope]
+      #   extract_scope(options)
+      # else
+      #   [options, method, field_name]
+      # end
+
+      # array_idx = options.delete(:array_idx)
+      # options[:object] ||= @object
+
+      # if array_idx == true
+      #   scope = "#{scope}[]"
+      # elsif array_idx
+      #   scope = "#{scope}[#{array_idx}]"
+      # end
+
+      @template.send( #   @template.send(
+          field_name, #     "text_field",
+          scope,      #     @object_name,
+          method,     #     method,
+          options)    #     objectify_options(options))'
+    end
+
+    def check_box(name, html_options = {}, checked_value = '1', unchecked_value = '0')
       label = html_options.delete(:label)
       html_options[:disabled] = true if html_options.delete(:readonly)
       help_text = html_options.delete(:help_text)
       small_help_text = html_options.delete(:small_help_text)
 
-      cb_class = ['custom-control custom-checkbox']
-      cb_class << 'is-invalid' if html_options[:class] == 'is-invalid'
-      content_tag :div, class: cb_class.join(' ') do
-        concat super_check_box(name, html_options.merge(class: 'custom-control-input'))
+      content_tag :div, class: 'custom-control custom-checkbox' do
+        html_options[:class] = 'custom-control-input'
+        obj_name = @object_name
+        obj = @object
+        options = html_options
+
+        if html_options[:scope]
+          options, obj_name, obj = extract_scope(options)
+          concat @template.check_box(obj_name, name, options, checked_value, unchecked_value)
+        else
+          concat super(name, html_options)
+        end
         label_text = if label.is_a?(String)
           label
         elsif label != false
-          @object.class.human_attribute_name(name)
+          obj.class.human_attribute_name(name)
         end
-        concat label(name, label_text, class: 'custom-control-label')
+        # concat label(name, label_text, class: 'custom-control-label')
+        concat @template.label(obj_name, name, label_text, options.merge(class: 'custom-control-label'))
+
         unless help_text.blank?
           p_class = small_help_text ? 'small text-muted' : 'form-text'
           concat content_tag(:p, help_text, class: p_class)
@@ -404,28 +409,40 @@ module RapidResources
         cb_html << @template.capture(b.object, &block) if block_given?
         cb_html
       end
-      css_class = [*html_options[:class]]
-      css_class << 'custom-controls-stacked' unless inline
-      css_class.compact!
-
-      content_tag(:div, cb_items, class: css_class.join(' '), ref: html_options[:ref])
+      if inline
+        content_tag(:div, cb_items, class: [*html_options[:class]].join(' '))
+      else
+        content_tag(:div, cb_items, class: 'custom-controls-stacked')
+        css_class = ['custom-controls-stacked']
+        css_class.concat [*html_options[:class]]
+        content_tag(:div, cb_items, class: css_class.join(' '))
+      end
     end
 
-    def radio_button(name, value, html_options = {}, &block)
+    def radio_button(name, tag_value, html_options = {}, &block)
       radio_label = html_options.delete(:label)
       css_class = %w(custom-control custom-radio)
       css_class.concat [*html_options.delete(:class)]
+
       content_tag :div, class: css_class.join(' ') do
-        concat super_radio_button(name, value, html_options.merge(class: 'custom-control-input'))
+        obj_name = @object_name
+        obj = @object
+        options = html_options
+        if options[:scope]
+          options, obj_name, obj = extract_scope(options)
+          concat @template.radio_button(obj_name, name, tag_value, options.merge(class: 'custom-control-input'))
+        else
+          concat super(name, html_options.merge(class: 'custom-control-input'))
+        end
 
         label_html = if block_given?
           @template.capture(self, &block)
         elsif radio_label.is_a?(String)
           radio_label
         elsif radio_label != false
-          @object.class.human_attribute_name(name)
+          obj.class.human_attribute_name(name)
         end
-        concat label(name, label_html, class: 'custom-control-label', value: value) unless label_html.blank?
+        concat @template.label(obj_name, name, label_html, options.merge(class: 'custom-control-label', value: tag_value))
       end
     end
 
@@ -465,20 +482,15 @@ module RapidResources
 
     def date_field(name, value, html_options = {})
       readonly = html_options.delete(:readonly)
-
       css_class = [*html_options[:class]]
       css_class << 'input-group date datetime'
       html_options[:class] = css_class.compact.join(' ')
-
-      btn_class = 'btn btn-picker btn-outline-secondary'
-      btn_class << ' btn-sm' if @small
-
       content_tag :div, html_options do
         input_options = { class: 'date', 'ref' => 'date' }
         input_options[:readonly] = true if readonly
         concat text_field(name, value.respond_to?(:strftime) ? value.strftime('%d/%m/%Y') : value.to_s, input_options)
         toggler = content_tag(:div, class: 'input-group-append') do
-          content_tag(:button, content_tag(:span, '', class: 'glyphicons calendar'), type: 'button', class: btn_class, 'ref' => 'date-toggler', disabled: readonly)
+          content_tag(:button, content_tag(:span, '', class: 'glyphicons calendar'), type: 'button', class: 'btn btn-picker btn-outline-secondary', 'ref' => 'date-toggler', disabled: readonly)
         end
         concat toggler
       end
@@ -494,41 +506,32 @@ module RapidResources
         time_value = time
       end
 
-      if value.is_a?(Hash)
-        date_str = value[:date].to_s
-        time_str = value[:time].to_s
+      date_str = if value.respond_to?(:strftime)
+        value.strftime('%d/%m/%Y')
       else
-        date_str = if value.respond_to?(:strftime)
-          value.strftime('%d/%m/%Y')
-        else
-          value.to_s
-        end
+        value.to_s
+      end
 
-        time_str = if time_value.respond_to?(:strftime)
-          time_value.strftime('%H:%M')
-        else
-          time_value.to_s
-        end
+      time_str = if time_value.respond_to?(:strftime)
+        time_value.strftime('%H:%M')
+      else
+        time_value.to_s
       end
 
       readonly = html_options.delete(:readonly)
       css_class = [*html_options[:class]]
       css_class << 'input-group date datetime'
       html_options[:class] = css_class.compact.join(' ')
-
-      btn_class = 'btn btn-picker btn-outline-secondary'
-      btn_class << ' btn-sm' if @small
-
       content_tag :div, html_options do
         date_input_options = { class: 'date', 'ref' => 'date', name: field_html_name(name, :date), id: field_html_id(name, :date) }
         date_input_options[:readonly] = true if readonly
         concat text_field(name, date_str, date_input_options)
-        concat content_tag(:div, content_tag(:button, content_tag(:span, '', class: 'glyphicons calendar'), type: 'button', class: btn_class, 'ref' => 'date-toggler', disabled: readonly), class: 'input-group-append')
+        concat content_tag(:div, content_tag(:button, content_tag(:span, '', class: 'glyphicons calendar'), type: 'button', class: 'btn btn-picker btn-outline-secondary', 'ref' => 'date-toggler', disabled: readonly), class: 'input-group-append')
 
         time_input_options = { class: 'time', 'ref' => 'time', name: field_html_name(name, :time), id: field_html_id(name, :time) }
         time_input_options[:readonly] = true if readonly
         concat text_field(name, time_str, time_input_options)
-        concat content_tag(:div, content_tag(:button, content_tag(:span, '', class: 'glyphicons time'), type: 'button', class: btn_class, 'ref' => 'time-toggler', disabled: readonly), class: 'input-group-append ui-timepicker-trigger')
+        concat content_tag(:div, content_tag(:button, content_tag(:span, '', class: 'glyphicons time'), type: 'button', class: 'btn btn-picker btn-outline-secondary', 'ref' => 'time-toggler', disabled: readonly), class: 'input-group-append ui-timepicker-trigger')
       end
     end
 
@@ -549,8 +552,11 @@ module RapidResources
       else
         f_item = name.to_s[0...-3]
         if name.to_s.ends_with?('_id') && !f_item.blank? && @object.respond_to?(f_item)
-          selected_id    = f_item.send(id_field)
-          selected_title = f_item.send(title_field)
+
+          if (obj = @object.send(f_item)) && obj.respond_to?(id_field) && obj.respond_to?(title_field)
+            selected_id    = f_item&.send(id_field)
+            selected_title = f_item&.send(title_field)
+          end
         else
           selected_id = @object.send(name)
         end
@@ -565,7 +571,13 @@ module RapidResources
       control_options['data-allow-clear'] = 'true' if options[:allow_clear]
       control_options['ref'] = options[:ref] if options[:ref]
 
-      items = items.map{ |item| [item.send(title_field), item.send(id_field)] }
+      items = items.map do |item|
+        if item.is_a?(Hash)
+          [item[title_field], item[id_field]]
+        else
+          [item.send(title_field), item.send(id_field)]
+        end
+      end
 
       if options[:field_tag]
         @template.select_tag name, @template.options_for_select(items, selected_id), control_options

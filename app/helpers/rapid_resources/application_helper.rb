@@ -142,6 +142,7 @@ module RapidResources
     def resource_form_options(item, page = nil, options = {})
       html_options = options.delete(:html) || {}
       f_options = {
+        model: item,
         url: page.form_url(item),
         html: { class: resource_form_class(item, page.try(:form_css_class)) }.merge!(html_options),
         builder: ResourceFormBuilder,

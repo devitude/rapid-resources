@@ -2,29 +2,40 @@ module RapidResources
   class ResourcePage
 
     include Pundit
+    public :policy
+
     # include Rails.application.routes.url_helpers
     include RapidResources::Engine.routes.url_helpers
 
     DEFAULT_ORDER = nil
-
-    USE_PUNDIT_SCOPE = false
 
     SOFT_DESTROY = false
 
     OPLOG_OBJECT_TYPE = nil
 
     attr_reader :name, :sort_params, :current_user
-    attr_accessor :return_to
+
+    attr_accessor :return_to, :resource
     attr_accessor :jsonapi
 
-    # fixme: get rid of model_class, name and action
-    def initialize(current_user, name: nil, model_class: nil, url_helpers: nil)
+    # fixme: get rid of model_class, name
+    def initialize(current_user, name: nil, model_class: nil, resource: nil, url_helpers: nil)
       @name = name
       @model_class = model_class
       @current_user = current_user
       @sort_params = {}
       @sort_columns = []
+      @resource = resource
       @url_helpers = url_helpers
+    end
+
+    def expose(items)
+      # Rails.logger.info("EXPOSE : #{items}")
+      return unless items.is_a?(Hash)
+      items.each do |k,v|
+        v_name = :"@#{k}"
+        instance_variable_set(v_name, v)
+      end
     end
 
     def model_class
@@ -36,10 +47,6 @@ module RapidResources
       :id
     end
 
-    def transform_jsonapi_keys
-      false
-    end
-
     def oplog_object_type
       self.class::OPLOG_OBJECT_TYPE
     end
@@ -48,8 +55,8 @@ module RapidResources
       nil
     end
 
-    def use_pundit_scope
-      self.class::USE_PUNDIT_SCOPE
+    def use_page_scope
+      true
     end
 
     def additional_form_buttons; end
@@ -57,7 +64,12 @@ module RapidResources
     def required_fields_context(resource); end
 
     def display_form_errors
-      true
+      @display_form_errors = true if @display_form_errors.nil?
+      @display_form_errors
+    end
+
+    def display_form_errors=(value)
+      @display_form_errors = value
     end
 
     def resource_errors(resource, exclude_form_fields: false)
@@ -97,10 +109,8 @@ module RapidResources
       'grid'
     end
 
-    # def init_grid_filters(filter_params = nil); end
-
     def grid_filters
-      @grid_filters || []
+      []
     end
 
     def grid_serializers
@@ -113,20 +123,6 @@ module RapidResources
 
     def grid_list_url
       { action: :index }
-    end
-
-    # Should this be deprecated?
-    # 2019.12.13 - maybe just remove url_helpers argument?
-    def grid_meta(default_meta, url_helpers)
-      default_meta
-    end
-
-    def grid_links(default_links)
-      default_links
-    end
-
-    def render_index_actions_with_table
-      false
     end
 
     def index_actions
@@ -193,24 +189,38 @@ module RapidResources
       false
     end
 
-    def sort_params=(new_sort)
-      @sort_params = parse_sort_param(new_sort)
+    def sort_param(jsonapi: false)
+      s_fields = @sort_columns.map do |sort_col|
+        col_field = collection_fields.find { |f| f.sortable && f.name == col_name }
+        if col_field
+          "#{f.sorted == :desc ? '-' : ''}#{jsonapi ? col_field.jsonapi_name : col_field.name}"
+        else
+          nil
+        end
+      end
+      s_fields.compact!
+      s_fields.join(',')
     end
 
-    def sort_items(items, sort_param: nil)
-      order_arg = if sort_param
-        parse_sort_param(sort_param)
-      else
-        sort_params
+    def sort_param=(new_sort)
+      sort_columns = new_sort.split(',')
+      sort_columns.map! do |col_name|
+        desc = col_name.starts_with?('-')
+        col_name = col_name[1..-1] if desc
+        col_field = collection_fields.find { |f| f.sortable && f.match_name?(col_name) }
+        col_field ? [col_field.name, desc] : nil
       end
+      sort_columns.compact!
 
-      if order_arg.any?
-        items.ordered(column: order_arg[:field], direction: order_arg[:asc] ? :asc : :desc)
-      else
-        if model_class.respond_to?(:ordered)
-          items.ordered
+      # apply given sort to columns
+      @sort_columns = []
+      collection_fields.each do |cf|
+        sort_col, sort_desc = sort_columns.find { |sc| sc[0] == cf.name }
+        if sort_col
+          @sort_columns << sort_col
+          cf.sorted = sort_desc ? :desc : :asc
         else
-          items
+          cf.sorted = nil
         end
       end
     end
@@ -229,7 +239,7 @@ module RapidResources
 
     def permitted_attributes(object)
       permitted_fields = []
-      if form_tabs = form_tabs(object)
+      if (form_tabs = form(object).tabs)
         form_tabs.each do |tab|
           tab[:fields].each do |f|
             permitted_fields.concat f.params.flatten
@@ -244,7 +254,7 @@ module RapidResources
       [:edit].freeze
     end
 
-    def collection_item_links(item)
+    def collection_item_links
       {}
     end
 
@@ -293,14 +303,9 @@ module RapidResources
       false
     end
 
-    def form_tabs(object)
-      frm = form(object)
-      frm.tabs
-    end
-
     def form_fields(object)
       fields = []
-      form_tabs(object).each do |tab|
+      form(object).tabs.each do |tab|
         fields.concat tab[:fields]
       end
       fields
@@ -310,25 +315,12 @@ module RapidResources
       nil
     end
 
-    def destroy_in_form
-      false
-    end
-
-    def filter_form
-      []
-    end
-    def filter_class; end
-
     def form_css_class
     end
     def additional_form_buttons; end
 
     def field_title(field)
-      if field.is_a?(RapidResources::CollectionField)
-        field.title
-      else
-        model_class.human_attribute_name(field)
-      end
+      model_class.human_attribute_name(field)
     end
 
     def title_helper; end
@@ -337,103 +329,18 @@ module RapidResources
     #   items
     # end
 
-    # def filter_params
-    #   [:sort]
-    # end
     def filter_params
       grid_filters.map(&:name)
     end
 
-    def sort_param(jsonapi: false)
-      s_fields = @sort_columns.map do |sort_col|
-        col_field = collection_fields.find { |f| f.sortable && f.name == col_name }
-        if col_field
-          "#{f.sorted == :desc ? '-' : ''}#{jsonapi ? col_field.jsonapi_name : col_field.name}"
-        else
-          nil
-        end
-      end
-      s_fields.compact!
-      s_fields.join(',')
-    end
-
-    def sort_param=(new_sort)
-      sort_columns = new_sort.split(',')
-      sort_columns.map! do |col_name|
-        desc = col_name.starts_with?('-')
-        col_name = col_name[1..-1] if desc
-        col_field = collection_fields.find { |f| f.sortable && f.match_name?(col_name) }
-        col_field ? [col_field.name, desc] : nil
-      end
-      sort_columns.compact!
-
-      # apply given sort to columns
-      @sort_columns = []
-      collection_fields.each do |cf|
-        sort_col, sort_desc = sort_columns.find { |sc| sc[0] == cf.name }
-        if sort_col
-          @sort_columns << sort_col
-          cf.sorted = sort_desc ? :desc : :asc
-        else
-          cf.sorted = nil
-        end
-      end
-    end
-
     def default_scope
-      if use_pundit_scope || scope || default_scope
-        items = policy_scope(scope || default_scope || model_class)
-      else
-        items = model_class.all
-        items = items.alive if items.respond_to? :alive
-      end
-      items
+      model_class.all
     end
 
     def do_load_items(items)
       items
     end
 
-    # def load_items(filter_params: nil, scope: nil)
-    #   if use_pundit_scope || scope || default_scope
-    #     items = policy_scope(scope || default_scope || model_class)
-    #   else
-    #     items = model_class.all
-    #     items = items.alive if items.respond_to? :alive
-    #   end
-
-    #   items = do_load_items(items)
-
-    #   # FIXME: order handling? Based on this, default order is always used?
-    #   # items = filter_items(items, filter)
-    #   if filter_params && filter_params[:sort]
-    #     self.sort_params = filter_params[:sort]
-    #     sp = sort_params
-    #     if sp
-    #       if model_class.respond_to?(:ordered)
-    #         items = items.reorder('').ordered(column: sp[:field], direction: sp[:asc] ? :asc : :desc)
-    #       else
-    #         items = items.order("#{sp[:field]} #{sp[:asc] ? 'ASC' : 'DESC'}")
-    #       end
-    #     end
-    #   end
-
-
-    #   if default_order
-    #     items = items.order(default_order)
-    #   elsif model_class.respond_to? :ordered
-    #     items = items.ordered
-    #   end
-
-    #   filter = filter_class.new if filter_class
-    #   items = filter.apply_to(items, filter_params) if filter
-
-    #   items.all
-    # end
-
-    #
-    # Filter params should not be used and need to be removed
-    #
     def load_items(filter_params: nil, scope: nil)
       # if use_page_scope
       #   items = policy_scope(scope || default_scope)
@@ -500,16 +407,12 @@ module RapidResources
       items
     end
 
-    # if true, then
-    # full_text_search is handled manually in page
-    def manual_text_filter?
-      false
-    end
-
     def filter_items(items)
       grid_filters.each do |filter|
         next unless filter.has_value?
-        if !manual_text_filter? && filter.type == GridFilter::TypeText && items.respond_to?(:full_text_search)
+        Rails.logger.info("RUN FILTER: #{filter.type.inspect} - #{items.respond_to?(:full_text_search).inspect}")
+        if filter.type == GridFilter::TypeText && items.respond_to?(:full_text_search)
+          Rails.logger.info("Apply text filter ...")
           items = items.full_text_search(filter.filtered_value)
           next # filter automatically handled, move to next
         end
@@ -521,22 +424,17 @@ module RapidResources
     end
 
     def item_action_link_params(action, item)
-      o_param = object_param
-       { action: action, o_param => (o_param == :id && item.respond_to?(:to_param) ? item.to_param : item.send(o_param)) }
+       { action: action, object_param => item.send(object_param) }
     end
 
     def filter_args=(filter_args)
-      if respond_to?(:init_grid_filters)
-        init_grid_filters(filter_args)
-      else
-        return unless filter_args.is_a?(Hash)
-
-        filter_args.each do |fk, fv|
-          fk = fk.to_sym
-          filter = grid_filters.find { |gf| gf.name == fk }
-          next unless filter
-          filter.filtered_value = fv
-        end
+      return unless filter_args.is_a?(Hash)
+      filter_args.each do |fk, fv|
+        fk = fk.to_sym
+        filter = grid_filters.find { |gf| gf.name == fk }
+        next unless filter
+        filter.filtered_value = fv
+        Rails.logger.info("Handle filter: #{fk.inspect} => #{fv.inspect}")
       end
     end
 
@@ -550,9 +448,9 @@ module RapidResources
 
     def grid_additional_header_actions; end
 
-    def new_url_params
-      { action: :new }
-    end
+    def policy_class; end
+
+    def policy_namespace; end
 
     protected
 
@@ -591,34 +489,6 @@ module RapidResources
       item = filter[:items].find { |item| item[:value] == filter_value }
 
       item&.[](:value) || nil
-    end
-
-    def parse_sort_param(new_sort)
-      collection_fields_str = collection_fields.map do |f|
-        if f.is_a?(CollectionField)
-          f.name.to_s
-        else
-          [*f].first.to_s
-        end
-      end
-
-      sort_field, sort_order = new_sort.to_s.split(':')
-      if sort_field&.starts_with?('-')
-        sort_field = sort_field[1..-1]
-        sort_order = 'desc'
-      end
-
-      if collection_fields_str.include?(sort_field)
-        s_field = sort_field.to_sym
-        s_asc = sort_order.blank? || sort_order == 'asc'
-        {
-          field: s_field,
-          asc: s_asc,
-          order_arg: s_asc ? s_field : {s_field => :desc}
-        }
-      else
-        {}
-      end
     end
   end
 end

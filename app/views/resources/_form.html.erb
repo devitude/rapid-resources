@@ -1,7 +1,8 @@
+<%- jsonapi_form ||= 0 -%>
 <% content_for :head_tags do %>
   <%#= javascript_include_tag '/js/tinymce/tinymce.min.js' %>
   <%#= javascript_include_tag '/js/tinymce/jquery.tinymce.min.js' %>
-  <%= javascript_pack_tag 'vendor-wysiwyg.js', 'wysiwyg.js' %>
+  <%= javascript_pack_tag 'wysiwyg.js' %>
   <%= stylesheet_pack_tag 'wysiwyg.css' %>
 <% end if page.with_editor? && !@modal %>
 
@@ -18,25 +19,42 @@
   </div>
 <% end %>
 
-<div class="rapid-form">
-  <%= form_for item, resource_form_options(item, page, remote: @modal, small: @modal, html: {ref: 'inputForm'}) do |f| %>
-    <% page.page_params.each do |p_name, p_value| %>
-      <%= hidden_field_tag p_name, p_value %>
-    <% end %>
-    <%= render partial: 'form_fields', locals: { f: f, page: page, item: item, tabs: page.form_tabs(item) } %>
-    <% unless @modal || page.form_hide_buttons %>
-      <% if (button_partial_name = page.form_buttons_partial(item)) %>
-        <%= render partial: button_partial_name, locals: { f: f, page: page, item: item } %>
-      <% else %>
-        <div class="form-buttons">
-          <button type="submit" class="btn btn-primary btn-sm"><%= page.t(item.persisted? ? :'form_action.update' : :'form_action.create') %></button>
-          <%= resource_form_cancel_tag(page, item) %>
-          <%= resource_additional_form_buttons page.additional_form_buttons, item %>
-          <% if page.destroy_in_form && item.persisted? && policy(item)&.destroy? %>
-            <%= link_to 'Delete', url_for(action: :destroy, return_to: params[:return_to]), class: 'btn btn-sm btn-danger float-right', 'data-method' => 'DELETE', 'data-confirm' => 'Are you sure?' %>
+<% if (resource_form = page.form(item)) %>
+  <% if resource_form.has_form_fields? %>
+    <div class="rapid-form">
+      <%= form_with resource_form_options(item, page, remote: @modal || false, local: !@modal, small: @modal, html: {ref: 'inputForm', 'data-type' => jsonapi_form ? 'json' : nil}) do |f| %>
+        <%= hidden_field_tag :jsonapi_form, jsonapi_form %>
+        <% page.page_params.each do |p_name, p_value| %>
+          <%= hidden_field_tag p_name, p_value %>
+        <% end %>
+        <%= render partial: 'form_fields', locals: { f: f, page: page, item: item, tabs: resource_form.tabs } %>
+        <% unless @modal || page.form_hide_buttons %>
+          <% if (button_partial_name = page.form_buttons_partial(item)) %>
+            <%= render partial: button_partial_name, locals: { f: f, page: page, item: item } %>
+          <% else %>
+            <div class="row form-buttons">
+              <div class="col<%= " #{resource_form.btn_wrap_col}" if resource_form.btn_wrap_col.present? %>">
+                <button type="submit" class="btn btn-primary btn-sm"><%= page.t(item.persisted? ? :'form_action.update' : :'form_action.create') %></button>
+                <%= resource_form_cancel_tag(page, item) %>
+                <%= resource_additional_form_buttons page.additional_form_buttons, item %>
+                <% if resource_form.show_destroy_btn && item.persisted? %>
+                  <%= link_to page.t('form_action.delete'), url_for(action: :destroy, return_to: params[:return_to]), class: 'btn btn-sm btn-danger float-right',
+                    'data-method' => 'DELETE',
+                    'data-confirm' => resource_form.destroy_confirmation_message,
+                    'data-confirm-title' => resource_form.destroy_confirmation_title,
+                    'data-confirm-code' => resource_form.destroy_confirmation_code,
+                    'data-confirm-action-title' => resource_form.destroy_confirmation_action_title,
+                    'data-confirm-cancel-title' => resource_form.destroy_confirmation_cancel_title,
+                    'data-confirm-type' => 'destroy'
+                    %>
+                <% end %>
+              </div>
+            </div>
           <% end %>
-        </div>
+        <% end %>
       <% end %>
-    <% end %>
+    </div>
+  <% else %>
+    <div class="m-alert"><%= resource_form.message_title %></div>
   <% end %>
-</div>
+<% end %>

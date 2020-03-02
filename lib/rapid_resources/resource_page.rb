@@ -134,7 +134,10 @@ module RapidResources
     end
 
     def table_cell_css_class(field, resource: nil, header: false)
+
+      additional_class = nil
       field_name = if field.is_a?(CollectionField)
+        additional_class = field.css_class
         field.name.to_s
       else
         [*field].first.to_s
@@ -150,7 +153,8 @@ module RapidResources
         end
       end
       classes << field_name
-      classes.join ' '
+      classes << additional_class
+      classes.select { |c| c.present? }.join ' '
     end
 
     def naming

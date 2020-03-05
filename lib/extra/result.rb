@@ -34,6 +34,10 @@ class Result
     @args[arg_key]
   end
 
+  def [](arg_key)
+    @args[arg_key]
+  end
+
   def unwrap
     return @value if ok?
     raise ArgumentError.new("Can't unwrap Err value!")

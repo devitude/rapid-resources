@@ -48,6 +48,7 @@ module RapidResources
         result[:type] = type
       elsif link_to.present?
         result[:type] = 'link_to'
+        result[:linkTo] = link_to
       end
       result
     end

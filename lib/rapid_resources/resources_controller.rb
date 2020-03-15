@@ -234,7 +234,7 @@ module RapidResources
     end
 
     def destroy
-      authorize @resource, :destroy?
+      authorize_resource :destroy?
       destroy_resource
 
       return if response_rendered?

@@ -284,6 +284,10 @@ module RapidResources
       super << 'resources'
     end
 
+    def with_resource_resolver
+      true
+    end
+
     def jsonapi_form?
       params[:jsonapi_form] == '1'
     end
@@ -294,6 +298,7 @@ module RapidResources
     end
 
     def resource_resolver
+      return nil unless with_resource_resolver
       @resource_resolver ||= ResourceResolver.new(controller_path,
         model_class: self.class.model_class,
         page_class: self.class.page_class)
@@ -306,7 +311,12 @@ module RapidResources
     # FIXME: migrate all pages and get rid of extra_params
     def create_page(page_class: nil, resource: nil)
       page_class ||= self.class.page_class
-      new_page = resource_resolver.page(current_user, page_class: page_class, resource: resource, url_helpers: self)
+      new_page = if with_resource_resolver
+        resource_resolver.page(current_user, page_class: page_class, resource: resource, url_helpers: self)
+      else
+        page_class.new(current_user, name: controller_path, model_class: self.class.model_class, url_helpers: self)
+      end
+
       if expose_items = page_expose
         new_page.expose(expose_items)
       end
@@ -325,12 +335,18 @@ module RapidResources
     end
 
     def resource_params
+      params_name = if with_resource_resolver
+        resource_resolver.params_name
+      else
+        page.model_class.to_s.underscore.gsub('/', '_')
+      end
+
       if request.format.jsonapi? && (deserializer = jsonapi_params_deserializer)
         resp = deserializer.call(params[:_jsonapi].to_unsafe_h)
-        r_params = ActionController::Parameters.new(@resource_resolver.params_name => resp)
-        r_params.require(@resource_resolver.params_name).permit(page.permitted_attributes(@resource))
+        r_params = ActionController::Parameters.new(params_name => resp)
+        r_params.require(params_name).permit(page.permitted_attributes(@resource))
       else
-        params.require(@resource_resolver.params_name).permit(page.permitted_attributes(@resource))
+        params.require(params_name).permit(page.permitted_attributes(@resource))
       end
     end
 
@@ -354,7 +370,9 @@ module RapidResources
         @page ||= create_page
         @resource ||= load_resource
         @page.resource = @resource
-        instance_variable_set("@#{resource_var_name}".to_sym, @resource)
+        if (var_name = resource_var_name)
+          instance_variable_set("@#{var_name}".to_sym, @resource)
+        end
       end
     end
 
@@ -363,7 +381,12 @@ module RapidResources
     end
 
     def load_resource
-      model = resource_resolver.model_class
+      model = if with_resource_resolver
+        resource_resolver.model_class
+      else
+        page.model_class
+      end
+
       case params[:action]
       when *load_item_actions
         load_current_resource(model)
@@ -400,11 +423,18 @@ module RapidResources
     end
 
     def resource_var_name
-      resource_resolver.resource_var_name
+      resource_resolver&.resource_var_name
     end
 
     def load_current_resource(model = nil, resource_page = nil)
-      model ||= resource_resolver.model_class
+      model ||= begin
+        if with_resource_resolver
+          resource_resolver.model_class
+        else
+          page.model_class
+        end
+      end
+
       resource_page ||= page
 
       resource = if resource_page.use_page_scope
@@ -572,7 +602,8 @@ module RapidResources
       old_display_errors = form_page.display_form_errors
       @modal = true
       form_page.display_form_errors = false
-      form_data = ResourceFormData.new(id: "frm-#{resource_resolver.model_name}") #(id: 'new-project')
+      frm_id = controller_path.split('/').last.singularize.camelize.freeze
+      form_data = ResourceFormData.new(id: "frm-#{frm_id}") #(id: 'new-project')
       # form_data.submit_title = @resource.new_record? ? 'Create new project' : 'Save project' # page.t(@resource.persisted? ? :'form_action.update' : :'form_action.create')
       form_data.submit_title = form_page.t(@resource.persisted? ? :'form_action.update' : :'form_action.create')
       form_data.html = render_to_string(partial: 'form',

@@ -29,6 +29,15 @@ module RapidResources
       @url_helpers = url_helpers
     end
 
+    # transform column names to camelLower
+    def transform_column_names
+      false
+    end
+
+    def new_item_actions_view
+      false
+    end
+
     def expose(items)
       # Rails.logger.info("EXPOSE : #{items}")
       return unless items.is_a?(Hash)

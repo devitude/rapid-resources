@@ -530,8 +530,17 @@ module RapidResources
         columns << CollectionField.new(':actions', title: '', sortable: false)
       end
 
+      columns.map!(&:to_jsonapi_column)
+      if page.transform_column_names
+        columns.each do |col|
+          col[:cssClass] = col.delete(:css_class)
+          col[:name] = col[:name].to_s.camelize(:lower)
+          col[:linkTo] = col[:linkTo].to_s.camelize(:lower) if col.key?(:linkTo)
+        end
+      end
       meta_fields = {
-        columns: columns.map(&:to_jsonapi_column),
+        newItemActionsView: page.new_item_actions_view,
+        columns: columns,
         filters: grid_page.grid_filters.map(&:to_jsonapi_filter),
         pages: paginator&.pages,
         current_page: paginator&.current_page,

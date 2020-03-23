@@ -488,7 +488,8 @@ module RapidResources
       content_tag :div, html_options do
         input_options = { class: 'date', 'ref' => 'date' }
         input_options[:readonly] = true if readonly
-        concat text_field(name, value.respond_to?(:strftime) ? value.strftime('%d/%m/%Y') : value.to_s, input_options)
+        input_options[:value] = value.respond_to?(:strftime) ? value.strftime('%d/%m/%Y') : value.to_s
+        concat text_field(name, input_options)
         toggler = content_tag(:div, class: 'input-group-append') do
           content_tag(:button, content_tag(:span, '', class: 'glyphicons calendar'), type: 'button', class: 'btn btn-picker btn-outline-secondary', 'ref' => 'date-toggler', disabled: readonly)
         end

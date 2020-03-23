@@ -220,6 +220,7 @@ module RapidResources
       sort_columns.map! do |col_name|
         desc = col_name.starts_with?('-')
         col_name = col_name[1..-1] if desc
+        col_name = col_name.underscore
         col_field = collection_fields.find { |f| f.sortable && f.match_name?(col_name) }
         col_field ? [col_field.name, desc] : nil
       end
@@ -411,6 +412,10 @@ module RapidResources
         # apply default order form model
         items = items.reorder('') # reset order to none
         items = items.ordered
+      end
+
+      if block_given?
+        items = yield items, order_fields
       end
 
       items

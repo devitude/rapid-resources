@@ -604,6 +604,14 @@ module RapidResources
       temp_path
     end
 
+    def render_jsonapi_form_error(error, status: 422)
+      frm_id = controller_path.split('/').last.singularize.camelize.freeze
+      form_data = ResourceFormData.new(id: "frm-#{frm_id}") #(id: 'new-project')
+      form_data.html = ''
+      form_data.meta = { error: { message: error } }
+      render jsonapi: form_data, status: status
+    end
+
     def render_jsonapi_form(error: nil, form_id: nil, form_page: nil)
       form_page ||= page
 

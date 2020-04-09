@@ -484,17 +484,13 @@ module RapidResources
     def date_field(name, value, html_options = {})
       readonly = html_options.delete(:readonly)
       css_class = [*html_options[:class]]
-      css_class << 'input-group date datetime'
+      css_class << 'date-picker date datetime'
       html_options[:class] = css_class.compact.join(' ')
       content_tag :div, html_options do
-        input_options = { class: 'date', 'ref' => 'date' }
+        input_options = { class: 'form-control form-control-sm', 'ref' => 'date' }
         input_options[:readonly] = true if readonly
         input_options[:value] = value.respond_to?(:strftime) ? value.strftime('%d/%m/%Y') : value.to_s
-        concat text_field(name, input_options)
-        toggler = content_tag(:div, class: 'input-group-append') do
-          content_tag(:button, content_tag(:span, '', class: 'glyphicons calendar'), type: 'button', class: 'btn btn-picker btn-outline-secondary', 'ref' => 'date-toggler', disabled: readonly)
-        end
-        concat toggler
+        text_field(name, input_options)
       end
     end
 

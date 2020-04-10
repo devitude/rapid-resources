@@ -484,7 +484,8 @@ module RapidResources
     def date_field(name, value, html_options = {})
       readonly = html_options.delete(:readonly)
       css_class = [*html_options[:class]]
-      css_class << 'date-picker date datetime'
+      css_class << 'date-picker date'
+      css_class << 'datetime' if html_options.delete(:datetime)
       html_options[:class] = css_class.compact.join(' ')
       content_tag :div, html_options do
         input_options = { class: 'form-control form-control-sm', 'ref' => 'date' }
@@ -495,42 +496,8 @@ module RapidResources
     end
 
     def datetime_field(name, value, html_options = {}, options = {})
-      time = options.delete(:time)
-      time_value = nil
-      if time == false
-        # time comes from date object
-        time_value = value
-      else
-        time_value = time
-      end
-
-      date_str = if value.respond_to?(:strftime)
-        value.strftime('%d/%m/%Y')
-      else
-        value.to_s
-      end
-
-      time_str = if time_value.respond_to?(:strftime)
-        time_value.strftime('%H:%M')
-      else
-        time_value.to_s
-      end
-
-      readonly = html_options.delete(:readonly)
-      css_class = [*html_options[:class]]
-      css_class << 'input-group date datetime'
-      html_options[:class] = css_class.compact.join(' ')
-      content_tag :div, html_options do
-        date_input_options = { class: 'date', 'ref' => 'date', name: field_html_name(name, :date), id: field_html_id(name, :date) }
-        date_input_options[:readonly] = true if readonly
-        concat text_field(name, date_str, date_input_options)
-        concat content_tag(:div, content_tag(:button, content_tag(:span, '', class: 'glyphicons calendar'), type: 'button', class: 'btn btn-picker btn-outline-secondary', 'ref' => 'date-toggler', disabled: readonly), class: 'input-group-append')
-
-        time_input_options = { class: 'time', 'ref' => 'time', name: field_html_name(name, :time), id: field_html_id(name, :time) }
-        time_input_options[:readonly] = true if readonly
-        concat text_field(name, time_str, time_input_options)
-        concat content_tag(:div, content_tag(:button, content_tag(:span, '', class: 'glyphicons time'), type: 'button', class: 'btn btn-picker btn-outline-secondary', 'ref' => 'time-toggler', disabled: readonly), class: 'input-group-append ui-timepicker-trigger')
-      end
+      value = value.strftime('%d/%m/%Y %H:%M') if value.respond_to?(:strftime)
+      date_field(name, value, { datetime: true }.merge(html_options))
     end
 
     def autocomplete_field(name, options = {})

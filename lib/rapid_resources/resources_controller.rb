@@ -136,6 +136,7 @@ module RapidResources
         return
       end
 
+      @resource.errors.add(:base, :save_error, message: "^#{result.error}") if result.error.present?
       save_response(:create, false)
       return if response_rendered?
 
@@ -231,6 +232,7 @@ module RapidResources
         return
       end
 
+      @resource.errors.add(:base, :save_error, message: "^#{result.error}") if result.error.present?
       save_response(:update, false)
 
       return if response_rendered?

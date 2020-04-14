@@ -46,8 +46,8 @@ module RapidResources
         []
       elsif @type == CHECK_BOX_LIST
         [{name => []}]
-      elsif @type == DATETIME_FIELD
-        [{name => [:date, :time]}]
+      # elsif @type == DATETIME_FIELD
+      #   [{name => [:date, :time]}]
       elsif @type == COLLECTION_SELECT && @options[:multiple]
         [{name => []}]
       else

@@ -425,13 +425,15 @@ module RapidResources
       items
     end
 
+    def apply_full_text_search(items, text)
+      items.full_text_search(text)
+    end
+
     def filter_items(items)
       grid_filters.each do |filter|
         next unless filter.has_value?
-        Rails.logger.info("RUN FILTER: #{filter.type.inspect} - #{items.respond_to?(:full_text_search).inspect}")
         if filter.type == GridFilter::TypeText && items.respond_to?(:full_text_search)
-          Rails.logger.info("Apply text filter ...")
-          items = items.full_text_search(filter.filtered_value)
+          items = apply_full_text_search(items, filter.filtered_value)
           next # filter automatically handled, move to next
         end
 

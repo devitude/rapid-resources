@@ -543,7 +543,7 @@ module RapidResources
       meta_fields = {
         newItemActionsView: page.new_item_actions_view,
         columns: columns,
-        filters: grid_page.grid_filters.map(&:to_jsonapi_filter),
+        filters: grid_page.grid_filters.select {|f| f.visible }.map(&:to_jsonapi_filter).map { |f| f.deep_transform_keys { |k| k.to_s.camelize(:lower )}},
         pages: paginator&.pages,
         current_page: paginator&.current_page,
         total_pages: paginator&.total_pages,

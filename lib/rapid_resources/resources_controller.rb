@@ -65,11 +65,11 @@ module RapidResources
       authorize_resource :index?
 
       respond_to do |format|
-        # format.xlsx do
-        #   items, columns = grid_items
-        #   xlsx_path = generate_xlsx_file(items, columns)
-        #   send_file xlsx_path, filename: xlsx_filename, type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        # end
+        format.xlsx do
+          items, columns = grid_items
+          xlsx_path = generate_xlsx_file(items, columns)
+          send_file xlsx_path, filename: xlsx_filename, type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        end
         format.jsonapi do
           grid_list
         end

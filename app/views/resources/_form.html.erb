@@ -27,7 +27,7 @@
         <% page.page_params.each do |p_name, p_value| %>
           <%= hidden_field_tag p_name, p_value %>
         <% end %>
-        <%= render partial: 'form_fields', locals: { f: f, page: page, item: item, tabs: resource_form.tabs } %>
+        <%= render partial: 'resources/form_fields', locals: { f: f, page: page, item: item, tabs: resource_form.tabs } %>
         <% unless @modal || page.form_hide_buttons %>
           <% if (button_partial_name = page.form_buttons_partial(item)) %>
             <%= render partial: button_partial_name, locals: { f: f, page: page, item: item } %>

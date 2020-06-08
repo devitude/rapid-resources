@@ -115,7 +115,12 @@ module RapidResources
         errors.concat @object.errors.full_messages_for(k)
       end
 
-      if errors.any?
+      additional_error_content = nil
+      if (errors_helper = options.delete(:errors_helper))
+        additional_error_content = @template.send(errors_helper, @object, name)
+      end
+
+      if errors.any? || additional_error_content.present?
         css_class = [*options[:class]]
         css_class << 'is-invalid'
         options[:class] = css_class.join(' ')
@@ -259,7 +264,13 @@ module RapidResources
           # concat content_tag :div, control_html, class: control_class
           concat control_html
           concat content_tag(:small, help_text, class: 'form-text text-muted') if help_text.present?
-          concat content_tag(:div, errors.join('; '), class: 'invalid-feedback') if errors.any?
+          if errors.any? || additional_error_content.present?
+            errors_tag = content_tag(:div, class: 'invalid-feedback') do
+              concat errors.join('; ') if errors.any?
+              concat additional_error_content if additional_error_content.present?
+            end
+            concat errors_tag
+          end
         end
         wrap_html = content_tag(:div, wrap_html, class: 'form-row') unless skip_form_row
 

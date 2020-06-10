@@ -276,7 +276,7 @@ module RapidResources
             else
               # object.class.human_attribute_name(name)
               # name
-              txt = object.class.human_attribute_name(name, form: true)
+              txt = object.class.human_attribute_name(name, section: 'form')
               txt
             end
             label_css_classes = []

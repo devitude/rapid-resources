@@ -29,8 +29,9 @@ module RapidResources
       @optional = optional
       @multi_select = false
 
+      @multi_select = (list? || autocomplete?) && multi_select == true
+
       if list?
-        @multi_select = multi_select == true
         @items ||= []
         @items.each { |item| item[:value] = item[:value].to_s }
         setup_list_items(first_item_default)
@@ -43,8 +44,12 @@ module RapidResources
       @type == TypeList
     end
 
+    def autocomplete?
+      @type == TypeAutocomplete
+    end
+
     def multiple?
-       list? && @multi_select
+       (list? || autocomplete?) && @multi_select
     end
 
     class << self
@@ -64,6 +69,11 @@ module RapidResources
 
       def autocomplete(name, options = {})
         options = { type: TypeAutocomplete }.merge(options)
+        new(name, **options)
+      end
+
+      def multi_autocomplete(name, options = {})
+        options = { type: TypeAutocomplete, multi_select: true }.merge(options)
         new(name, **options)
       end
 

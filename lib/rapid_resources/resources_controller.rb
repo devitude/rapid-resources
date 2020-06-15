@@ -413,9 +413,15 @@ module RapidResources
       grid_page.jsonapi = true
 
       filter_params = if params.key?(:filter)
-        params.fetch(:filter, {}).permit(*grid_page.filter_params).to_h
+        params
+          .fetch(:filter, {})
+          .permit(*grid_page.filter_params)
+          .to_h
       else
-        params.permit(*grid_page.filter_params).to_h
+        params
+          .slice(*grid_page.filter_keys)
+          .permit(*grid_page.filter_params)
+          .to_h
       end
 
       grid_page.sort_param = params[:sort].to_s if params[:sort]

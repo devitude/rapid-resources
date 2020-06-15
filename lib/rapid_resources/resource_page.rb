@@ -346,6 +346,15 @@ module RapidResources
       end
     end
 
+    def filter_keys
+      # grid_filters.map(&:name)
+      result = filter_params.map { |fp| fp.is_a?(Hash) ? fp.keys : fp }
+      result.flatten!
+      result.compact!
+      result.uniq!
+      result
+    end
+
     def sort_param(jsonapi: false)
       s_fields = @sort_columns.map do |sort_col|
         col_field = collection_fields.find { |f| f.sortable && f.name == col_name }

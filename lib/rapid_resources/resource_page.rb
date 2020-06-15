@@ -581,7 +581,6 @@ module RapidResources
         type: :list,
         title: title,
         selected_value: selected_item&.[](:value),
-        selected_title: selected_item&.[](:title),
         items: items
       }
     end

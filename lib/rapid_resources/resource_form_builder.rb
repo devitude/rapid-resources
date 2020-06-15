@@ -542,15 +542,12 @@ module RapidResources
       title_field = options.delete(:title_field) || :title
 
       selected_id    = nil
-      selected_title = nil
       if Hash === options[:selected] && options[:selected].key?(id_field) && options[:selected].key?(title_field)
         selected_id    = options[:selected][id_field]
-        selected_title = options[:selected][title_field]
       else
         f_item = name.to_s[0...-3]
         if name.to_s.ends_with?('_id') && !f_item.blank? && @object.respond_to?(f_item)
           selected_id    = f_item.send(id_field)
-          selected_title = f_item.send(title_field)
         else
           selected_id = @object.send(name)
         end

@@ -6,12 +6,12 @@ module RapidResources
     TypeAutocomplete = :autocomplete
     TypeList = :list
 
-    attr_reader :name, :type, :title, :selected_value, :selected_title, :notice,
+    attr_reader :name, :type, :title, :selected_value, :notice,
       :items, :autocomplete_url, :visible, :placeholder, :multi_select
 
     attr_accessor :filtered_value
 
-    def initialize(name, type:, title: nil, selected_value: nil, selected_title: nil, notice: nil,
+    def initialize(name, type:, title: nil, selected_value: nil, notice: nil,
       items: nil, autocomplete_url: nil, visible: true, placeholder: nil, first_item_default: false,
       empty_title: nil, optional: nil, multi_select: nil, &block)
       @visible = visible
@@ -19,7 +19,6 @@ module RapidResources
       @type = type
       @title = title
       @selected_value = selected_value
-      @selected_title = selected_title
       @filtered_value = selected_value
       @notice = notice
       @items = items
@@ -119,7 +118,6 @@ module RapidResources
         type: type.to_s,
         placeholder: placeholder,
         selected_value: selected_value,
-        selected_title: selected_title,
         notice: notice,
         items: items,
         autocomplete_url: autocomplete_url,
@@ -131,7 +129,7 @@ module RapidResources
     end
 
     def setup_list_items(first_item_default)
-      return if selected_title.present? && selected_value.present?
+      return if selected_value.present?
 
       # get selected item
       sel_value = selected_value.to_s
@@ -141,7 +139,6 @@ module RapidResources
       end
 
       @selected_value = sel_item&.[](:value)
-      @selected_title = sel_item&.[](:title)
     end
   end
 end

@@ -6,10 +6,8 @@ module RapidResources
     TypeAutocomplete = :autocomplete
     TypeList = :list
 
-    attr_reader :name, :type, :title, :selected_value, :notice,
+    attr_reader :name, :type, :title, :notice,
       :items, :autocomplete_url, :visible, :placeholder, :multi_select
-
-    attr_accessor :filtered_value
 
     def initialize(name, type:, title: nil, selected_value: nil, notice: nil,
       items: nil, autocomplete_url: nil, visible: true, placeholder: nil, first_item_default: false,
@@ -18,8 +16,7 @@ module RapidResources
       @name = name
       @type = type
       @title = title
-      @selected_value = selected_value
-      @filtered_value = selected_value
+      self.selected_value = selected_value
       @notice = notice
       @items = items
       @autocomplete_url = autocomplete_url
@@ -53,7 +50,12 @@ module RapidResources
       @type == TypeAutocomplete
     end
 
+    def daterange?
+      @type == TypeDateRange
+    end
+
     def multiple?
+      return true if daterange?
        (list? || autocomplete?) && @multi_select
     end
 
@@ -88,12 +90,35 @@ module RapidResources
       end
     end
 
-    def has_value?
-      filtered_value.present?
+    def selected_value
+      @selected_value
     end
 
-    def filtered_date_range
-      date_from, date_to = filtered_value.to_s.split(',')
+    def selected_value=(value)
+      if multiple?
+        @selected_value = [*value] if value
+      else
+        @selected_value = [*value].first
+      end
+    end
+
+    def has_value?
+      # if selected value is an array, check if at least one item is present
+      if selected_value.is_a?(Array)
+        item = selected_value.detect { |v| v.present? }
+        return item.present?
+      end
+
+      selected_value.present?
+    end
+
+    def selected_date_range
+      date_from, date_to = if selected_value.is_a?(Array)
+        selected_value
+      else
+        selected_value.to_s.split(',')
+      end
+
       tz = ActiveSupport::TimeZone['Europe/Brussels']
             # date = tz.strptime(date, '%d/%m/%Y %H:%M') rescue new_date
       date_from = if date_from.present?

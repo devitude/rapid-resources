@@ -342,7 +342,7 @@ module RapidResources
     # end
     def filter_params
       grid_filters.map do |filter|
-        filter.text? ? filter.name : { filter.name => [] }
+        filter.multiple? ? { filter.name => [] } : filter.name
       end
     end
 
@@ -512,7 +512,7 @@ module RapidResources
       grid_filters.each do |filter|
         next unless filter.has_value?
         if !manual_text_filter? && filter.type == GridFilter::TypeText && items.respond_to?(:full_text_search)
-          items = items.full_text_search(filter.filtered_value)
+          items = items.full_text_search(filter.selected_value)
           next # filter automatically handled, move to next
         end
 
@@ -537,7 +537,7 @@ module RapidResources
           fk = fk.to_sym
           filter = grid_filters.find { |gf| gf.name == fk }
           next unless filter
-          filter.filtered_value = fv
+          filter.selected_value = fv
         end
       end
     end

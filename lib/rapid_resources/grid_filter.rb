@@ -33,11 +33,17 @@ module RapidResources
 
       if list?
         @items ||= []
-        @items.each { |item| item[:value] = item[:value].to_s }
+        @items.each do |item|
+          item[:value] = item[:value].to_s
+        end
         setup_list_items(first_item_default)
       end
 
       yield self if block_given?
+    end
+
+    def text?
+      @type == TypeText
     end
 
     def list?

@@ -341,7 +341,9 @@ module RapidResources
     #   [:sort]
     # end
     def filter_params
-      grid_filters.map(&:name)
+      grid_filters.map do |filter|
+        filter.text? ? filter.name : { filter.name => [] }
+      end
     end
 
     def sort_param(jsonapi: false)

@@ -127,7 +127,10 @@ module RapidResources
     def create
       authorize_resource :create?
 
-      if save_resource(@resource, resource_params)
+      result = save_resource(@resource, resource_params)
+      return if response_rendered?
+
+      if result.ok?
         save_response(:create)
       end
 
@@ -205,7 +208,10 @@ module RapidResources
 
       yield if block_given?
 
-      if save_resource(@resource, resource_params)
+      result = save_resource(@resource, resource_params)
+      return if response_rendered?
+
+      if result.ok?
         save_response(:update)
       end
 
@@ -405,7 +411,14 @@ module RapidResources
     end
 
     def save_resource(resource, params)
-      resource.update(resource_params)
+      # resource.update(resource_params)
+      resource.assign_attributes(resource_params)
+      # if resource.valid?(:form) && resource.save
+      if resource.save
+        Result.ok
+      else
+        Result.err
+      end
     end
 
     def grid_items(grid_page: nil, grid_items: nil)

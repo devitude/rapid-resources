@@ -258,6 +258,7 @@ module RapidResources
 
       additional_group_classes = [*options.delete(:form_group_css_class)]
       wrap_ref = options.delete(:wrap_ref)
+      wrap_html_options = options.delete(:wrap_html_options) || {}
 
       if wrap_controls
         additional_group_classes.unshift('form-group')
@@ -265,7 +266,11 @@ module RapidResources
         additional_group_classes << 'with-help-tooltip' if help_tooltip
 
         wrap_options = { class: additional_group_classes.join(' ') }
-        wrap_options[:ref] = wrap_ref if skip_form_row && wrap_ref.present?
+        if skip_form_row
+          wrap_options[:ref] = wrap_ref if wrap_ref.present?
+          wrap_options.merge!(wrap_html_options)
+        end
+
         wrap_html = content_tag :div, wrap_options do
           control_class = form_control_class + ' input-sm'
           if type != :hidden && options[:label] != false && (name || options[:label])
@@ -315,6 +320,7 @@ module RapidResources
         unless skip_form_row
           row_options = { class: 'form-row' }
           row_options[:ref] = wrap_ref if wrap_ref.present?
+          row_options.merge!(wrap_html_options)
           wrap_html = content_tag(:div, wrap_html, row_options)
         end
 

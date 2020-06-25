@@ -140,6 +140,10 @@ module RapidResources
 
       field_required = options.delete(:required)
 
+      additional_group_classes = [*options.delete(:form_group_css_class)]
+      wrap_ref = options.delete(:wrap_ref)
+      wrap_html_options = options.delete(:wrap_html_options) || {}
+
       control_html = case type
       when :text
         f_value = options.delete(:value) || @object.send(name)
@@ -255,10 +259,6 @@ module RapidResources
       else
         content_tag :p, "Invalid field: '#{type}'", class: 'form-control-static text-danger'
       end
-
-      additional_group_classes = [*options.delete(:form_group_css_class)]
-      wrap_ref = options.delete(:wrap_ref)
-      wrap_html_options = options.delete(:wrap_html_options) || {}
 
       if wrap_controls
         additional_group_classes.unshift('form-group')

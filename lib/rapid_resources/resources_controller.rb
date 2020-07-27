@@ -30,10 +30,6 @@ module RapidResources
         nil
       end
 
-      def page_class
-        nil
-      end
-
       # def before_load_res(*args, &block) # :nodoc:
       #   # set_options_for_callbacks!(args)
       #   set_callback(:before_load_res, :before, *args, &block)
@@ -259,6 +255,10 @@ module RapidResources
       super << 'resources'
     end
 
+    def page_class
+      nil
+    end
+
 
     # FIXME: use ActionController::Metal.performed? instead
     def response_rendered?
@@ -268,7 +268,7 @@ module RapidResources
     def resource_resolver
       @resource_resolver ||= ResourceResolver.new(controller_path,
         model_class: self.class.model_class,
-        page_class: self.class.page_class)
+        page_class: page_class)
     end
 
     def page
@@ -281,7 +281,7 @@ module RapidResources
 
     # FIXME: migrate all pages and get rid of extra_params
     def init_page(page_class: nil)
-      page_class ||= self.class.page_class
+      page_class ||= self.page_class
       resource_resolver.page(current_user, page_class: page_class, url_helpers: self)
     end
 

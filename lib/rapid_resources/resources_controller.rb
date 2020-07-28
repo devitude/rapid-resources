@@ -26,10 +26,6 @@ module RapidResources
     # define_callbacks :load_res
 
     class_methods do
-      def model_class
-        nil
-      end
-
       # def before_load_res(*args, &block) # :nodoc:
       #   # set_options_for_callbacks!(args)
       #   set_callback(:before_load_res, :before, *args, &block)
@@ -265,12 +261,6 @@ module RapidResources
       response_body
     end
 
-    def resource_resolver
-      @resource_resolver ||= ResourceResolver.new(controller_path,
-        model_class: self.class.model_class,
-        page_class: page_class)
-    end
-
     def page
       @page ||= begin
         page = init_page
@@ -282,14 +272,18 @@ module RapidResources
     # FIXME: migrate all pages and get rid of extra_params
     def init_page(page_class: nil)
       page_class ||= self.page_class
-      resource_resolver.page(current_user, page_class: page_class, url_helpers: self)
+      page_class.new(current_user, name: controller_path, url_helpers: self)
     end
 
     def setup_page(page)
     end
 
+    def resource_params_name
+      page.model_class.model_name.param_key
+    end
+
     def resource_params
-      params.require(@resource_resolver.params_name).permit(page.permitted_attributes(@resource))
+      params.require(resource_params_name).permit(page.permitted_attributes(@resource))
     end
 
     def filter_params(page)
@@ -328,7 +322,7 @@ module RapidResources
       when *item_actions
         single = true
       when 'new', 'create'
-        model = resource_resolver.model_class
+        model = page.model_class
         @resource = respond_to?(:build_model, true) ? build_model : (model.respond_to?(:build_new) ? model.build_new : model.new)
       end
 
@@ -360,11 +354,11 @@ module RapidResources
     end
 
     def resource_var_name
-      resource_resolver.resource_var_name
+      page.model_class.model_name.singular.freeze
     end
 
     def load_current_resource
-      model ||= resource_resolver.model_class
+      model ||= page.model_class
 
       resource = if page.use_pundit_scope
         policy_scope(model)
@@ -404,7 +398,7 @@ module RapidResources
     def authorize_resource(query)
       case query
       when :index?
-        authorize resource_resolver.model_class, query
+        authorize page.model_class, query
       else
         authorize @resource, query
       end

@@ -115,9 +115,7 @@ module RapidResources
       { action: :index }
     end
 
-    # Should this be deprecated?
-    # 2019.12.13 - maybe just remove url_helpers argument?
-    def grid_meta(default_meta, url_helpers)
+    def grid_meta(default_meta)
       default_meta
     end
 

@@ -597,7 +597,7 @@ module RapidResources
       meta_fields.merge!(additional_meta) if additional_meta.is_a?(Hash)
 
       # FIXME: grid_page grid_meta deprecated?
-      meta_fields = grid_page.grid_meta(meta_fields, self)
+      meta_fields = grid_page.grid_meta(meta_fields)
 
       jsonapi_index_response(grid_items,
         serializers: grid_page.grid_serializers,

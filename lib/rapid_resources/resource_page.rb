@@ -125,6 +125,10 @@ module RapidResources
       default_links
     end
 
+    def grid_include
+      nil
+    end
+
     def render_index_actions_with_table
       false
     end

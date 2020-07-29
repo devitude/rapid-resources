@@ -605,7 +605,7 @@ module RapidResources
         links: grid_links(grid_page),
         render_fields: grid_page.grid_fields,
         expose: grid_page.grid_expose,
-        jsonapi_include: jsonapi_include,
+        jsonapi_include: jsonapi_include || grid_page.grid_include,
         grid_page: grid_page,
         )
     end

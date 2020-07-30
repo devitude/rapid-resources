@@ -187,8 +187,6 @@ module RapidResources
 
     def column_sortable?(field_name)
       return field_name.sortable if field_name.is_a?(CollectionField)
-
-      return false if field_name == :idx
       false
     end
 

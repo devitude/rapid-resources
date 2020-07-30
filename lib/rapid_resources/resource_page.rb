@@ -5,8 +5,6 @@ module RapidResources
     # include Rails.application.routes.url_helpers
     include RapidResources::Engine.routes.url_helpers
 
-    DEFAULT_ORDER = nil
-
     USE_PUNDIT_SCOPE = false
 
     SOFT_DESTROY = false
@@ -23,7 +21,6 @@ module RapidResources
       @model_class = model_class
       @current_user = current_user
       @sort_params = {}
-      @sort_columns = []
       @url_helpers = url_helpers
     end
 
@@ -199,6 +196,7 @@ module RapidResources
       @sort_params = parse_sort_param(new_sort)
     end
 
+    # this should be removed?
     def sort_items(items, sort_param: nil)
       order_arg = if sort_param
         parse_sort_param(sort_param)
@@ -252,10 +250,6 @@ module RapidResources
 
     def actions
       collection_actions
-    end
-
-    def default_order
-      self.class::DEFAULT_ORDER
     end
 
     def soft_destroy
@@ -358,14 +352,19 @@ module RapidResources
     end
 
     def sort_param(jsonapi: false)
-      s_fields = @sort_columns.map do |sort_col|
-        col_field = collection_fields.find { |f| f.sortable && f.name == col_name }
-        if col_field
-          "#{f.sorted == :desc ? '-' : ''}#{jsonapi ? col_field.jsonapi_name : col_field.name}"
+      s_fields = collection_fields.map do |cf|
+        next unless cf.sortable
+
+        s_name = jsonapi ? col_field.jsonapi_name : col_field.name
+        if f.sorted == :desc
+          "-#{s_name}"
+        elsif f.sorted == :asc
+          s_name
         else
           nil
         end
       end
+
       s_fields.compact!
       s_fields.join(',')
     end
@@ -380,15 +379,15 @@ module RapidResources
       end
       sort_columns.compact!
 
-      # apply given sort to columns
-      @sort_columns = []
-      collection_fields.each do |cf|
-        sort_col, sort_desc = sort_columns.find { |sc| sc[0] == cf.name }
-        if sort_col
-          @sort_columns << sort_col
-          cf.sorted = sort_desc ? :desc : :asc
-        else
-          cf.sorted = nil
+      if sort_columns.count.positive?
+        # apply given sort to columns
+        collection_fields.each do |cf|
+          sort_col, sort_desc = sort_columns.find { |sc| sc[0] == cf.name }
+          if sort_col
+            cf.sorted = sort_desc ? :desc : :asc
+          else
+            cf.sorted = nil
+          end
         end
       end
     end
@@ -468,24 +467,11 @@ module RapidResources
     def order_items(items)
       return items if items.is_a?(Array)
 
-      # items = items.reorder('') # reset order to none
       order_fields = []
-
-      @sort_columns.each do |col_name|
-        col_field = collection_fields.find { |cf| cf.name == col_name }
-        if col_field
-          order_fields << [col_field.name, col_field.sorted]
-        end
-      end
-
-      if order_fields.count.zero?
-        # apply default order if set
-        sort_field, sort_direction = default_order
-        if sort_field
-          order_fields << [sort_field, sort_direction]
-          # mark default column ordered
-          col_field = collection_fields.find { |cf| cf.sortable && cf.match_name?(sort_field) }
-          col_field.sorted = sort_direction if col_field
+      collection_fields.each do |cf|
+        next unless cf.sortable
+        if cf.sorted == :asc || cf.sorted == :desc
+          order_fields << [cf.name, cf.sorted]
         end
       end
 

@@ -137,12 +137,17 @@ module RapidResources
     end
 
     def to_jsonapi_filter
+      if items.is_a?(Array)
+        items = self.items.dup
+        items.each { |item| item[:value] = item[:value].to_s }
+      end
+
       result = {
         name: name,
         title: title,
         type: type.to_s,
         placeholder: placeholder,
-        selected_value: selected_value,
+        selected_value: [*selected_value].map(&:to_s),
         notice: notice,
         items: items,
         autocomplete_url: autocomplete_url,

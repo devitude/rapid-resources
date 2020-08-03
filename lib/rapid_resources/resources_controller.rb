@@ -585,7 +585,7 @@ module RapidResources
 
       meta_fields = {
         columns: columns.map(&:to_jsonapi_column),
-        filters: grid_page.grid_filters.select {|f| f.visible }.map(&:to_jsonapi_filter),
+        filters: RapidResources::Utils.js_json(grid_page.grid_filters.select {|f| f.visible }.map(&:to_jsonapi_filter)),
         pages: paginator&.pages,
         current_page: paginator&.current_page,
         total_pages: paginator&.total_pages,

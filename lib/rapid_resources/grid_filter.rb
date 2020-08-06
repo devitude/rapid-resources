@@ -60,8 +60,8 @@ module RapidResources
     end
 
     class << self
-      def text(name, title: nil, visible: true, placeholder: nil, &block)
-        new(name, type: TypeText, title: title, visible: visible, placeholder: placeholder, &block)
+      def text(name, title: nil, visible: true, placeholder: nil, selected_value: nil, &block)
+        new(name, type: TypeText, title: title, visible: visible, placeholder: placeholder, selected_value: selected_value, &block)
       end
 
       def list(name, options = {})

@@ -191,7 +191,7 @@ module RapidResources
         html_options = { 'data-is' => component_type, 'data-list-url' => url_for(page.grid_list_url) }.merge(options || {})
         content_tag :div, '', html_options
       else
-        content_tag page.grid_component, '', ':list-url' => url_for(page.grid_list_url)
+        content_tag page.grid_component, '', 'data-list-url' => url_for(page.grid_list_url)
       end
     end
   end

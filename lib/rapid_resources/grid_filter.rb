@@ -13,8 +13,11 @@ module RapidResources
       items: nil, autocomplete_url: nil, visible: true, placeholder: nil, first_item_default: false,
       empty_title: nil, optional: nil, multi_select: nil, &block)
       @visible = visible
+
       @name = name
       @type = type
+      @multi_select = (list? || autocomplete?) && multi_select == true
+
       @title = title
       self.selected_value = selected_value
       @notice = notice
@@ -23,9 +26,6 @@ module RapidResources
       @placeholder = placeholder
       @empty_title = empty_title
       @optional = optional
-      @multi_select = false
-
-      @multi_select = (list? || autocomplete?) && multi_select == true
 
       if list?
         @items ||= []
@@ -60,8 +60,9 @@ module RapidResources
     end
 
     class << self
-      def text(name, title: nil, visible: true, placeholder: nil, selected_value: nil, &block)
-        new(name, type: TypeText, title: title, visible: visible, placeholder: placeholder, selected_value: selected_value, &block)
+      def text(name, options = {}, &block)
+        options = { type: TypeText }.merge(options)
+        new(name, **options, &block)
       end
 
       def list(name, options = {})
@@ -96,7 +97,7 @@ module RapidResources
 
     def selected_value=(value)
       if multiple?
-        @selected_value = [*value] if value
+        @selected_value = value ? [*value] : []
       else
         @selected_value = [*value].first
       end

@@ -2,7 +2,7 @@ module RapidResources
   class CollectionField
     attr_reader :name, :jsonapi_name, :title, :sortable, :link_to, :cell_helper_method, :css_class
     attr_accessor :sorted
-    attr_reader :type
+    attr_reader :type, :sort_key
 
     class << self
       def actions
@@ -15,7 +15,10 @@ module RapidResources
       end
     end
 
-    def initialize(name, jsonapi_name: nil, sortable: false, title: nil, link_to: nil, sorted: nil, cell_helper_method: nil, type: nil, css_class: nil)
+    def initialize(name, jsonapi_name: nil, sortable: false, title: nil, link_to: nil, sorted: nil,
+      cell_helper_method: nil, type: nil, css_class: nil,
+      sort_key: nil
+    )
       @name = name
       @jsonapi_name = jsonapi_name
       @sortable = sortable
@@ -26,6 +29,7 @@ module RapidResources
       @link_to = link_to
       @type = type
       @css_class = css_class
+      @sort_key = sort_key || @name
     end
 
     def match_name?(name)
@@ -42,13 +46,14 @@ module RapidResources
         title: title,
         sortable: sortable,
         sorted: sorted,
+        sort_key: @sort_key,
         css_class: css_class,
       }
       if type.present?
         result[:type] = type
       elsif link_to.present?
         result[:type] = 'link_to'
-        result[:linkTo] = link_to
+        result[:link_to] = link_to
       end
       result
     end

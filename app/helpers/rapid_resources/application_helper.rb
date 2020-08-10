@@ -49,28 +49,8 @@ module RapidResources
     end
 
     def resource_header(page, field)
-
-      field_name = if field.is_a?(CollectionField)
-        field.name
-      else
-        [*field].first
-      end
-
-      th_content = if field_name == :idx || field_name == ':idx'
-        '#'
-      else
-        field, *options = field if field.is_a?(Array)
-        if options.is_a?(Array) &&  options.length > 1 && options[0].is_a?(Symbol) && options[1].is_a?(Hash) && options[1][:header] == true
-          send(options[0], nil, field, **{ header: true })
-        elsif field.is_a?(RapidResources::CollectionField)
-          field.title
-        else
-          page.field_title(field)
-        end
-      end
-
-      content_tag :th, th_content, class: page.table_cell_css_class(field, header: true),
-        'data-sort-by' => page.column_sortable?(field) ? field_name : nil
+      content_tag :th, field.title, class: page.table_cell_css_class(field, header: true),
+        'data-sort-by' => field.sortable ? field.sort_key : nil
     end
 
     def resource_field(page, item, field, idx)

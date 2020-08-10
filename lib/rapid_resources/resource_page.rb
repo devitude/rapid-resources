@@ -11,7 +11,7 @@ module RapidResources
 
     OPLOG_OBJECT_TYPE = nil
 
-    attr_reader :name, :sort_params, :current_user
+    attr_reader :name, :current_user
     attr_accessor :return_to
     attr_accessor :jsonapi
 
@@ -20,7 +20,6 @@ module RapidResources
       @name = name
       @model_class = model_class
       @current_user = current_user
-      @sort_params = {}
       @url_helpers = url_helpers
     end
 
@@ -145,20 +144,13 @@ module RapidResources
     end
 
     def table_cell_css_class(field, resource: nil, header: false)
-      field_name = if field.is_a?(CollectionField)
-        field.name.to_s
-      else
-        [*field].first.to_s
-      end
+      field_name = field.name.to_s
 
       classes = []
       classes << 'tight' if field == :idx
-      if header && column_sortable?(field)
+      if header && field.sortable
         classes << 'sortable'
-        sort_field, sort_asc = sort_params[:field].to_s, sort_params[:asc]
-        if sort_field == field_name
-          classes << (sort_asc ? 'asc' : 'desc')
-        end
+        classes << field.sorted.to_s if field.sorted
       end
       classes << field_name
       classes.join ' '
@@ -198,27 +190,8 @@ module RapidResources
       false
     end
 
-    def sort_params=(new_sort)
-      @sort_params = parse_sort_param(new_sort)
-    end
-
-    # this should be removed?
-    def sort_items(items, sort_param: nil)
-      order_arg = if sort_param
-        parse_sort_param(sort_param)
-      else
-        sort_params
-      end
-
-      if order_arg.any?
-        items.ordered(column: order_arg[:field], direction: order_arg[:asc] ? :asc : :desc)
-      else
-        if model_class.respond_to?(:ordered)
-          items.ordered
-        else
-          items
-        end
-      end
+    def sorted_field
+      collection_fields.detect { |cf| cf.sortable && !cf.sorted.nil? }
     end
 
     def collection_fields
@@ -361,7 +334,7 @@ module RapidResources
       s_fields = collection_fields.map do |cf|
         next unless cf.sortable
 
-        s_name = jsonapi ? col_field.jsonapi_name : col_field.name
+        s_name = col_field.sort_key
         if f.sorted == :desc
           "-#{s_name}"
         elsif f.sorted == :asc
@@ -376,24 +349,17 @@ module RapidResources
     end
 
     def sort_param=(new_sort)
+      return if new_sort.blank?
+
+      # unset sort for everything
+      collection_fields.each { |cf| cf.sorted = nil }
+
       sort_columns = new_sort.split(',')
-      sort_columns.map! do |col_name|
+      sort_columns.each do |col_name|
         desc = col_name.starts_with?('-')
         col_name = col_name[1..-1] if desc
-        col_field = collection_fields.find { |f| f.sortable && f.match_name?(col_name) }
-        col_field ? [col_field.name, desc] : nil
-      end
-      sort_columns.compact!
-
-      if sort_columns.count.positive?
-        # apply given sort to columns
-        collection_fields.each do |cf|
-          sort_col, sort_desc = sort_columns.find { |sc| sc[0] == cf.name }
-          if sort_col
-            cf.sorted = sort_desc ? :desc : :asc
-          else
-            cf.sorted = nil
-          end
+        if (col_field = collection_fields.find { |f| f.sortable && f.sort_key.to_s == col_name })
+          col_field.sorted = desc ? :desc : :asc
         end
       end
     end
@@ -477,7 +443,7 @@ module RapidResources
       collection_fields.each do |cf|
         next unless cf.sortable
         if cf.sorted == :asc || cf.sorted == :desc
-          order_fields << [cf.name, cf.sorted]
+          order_fields << [cf.sort_key, cf.sorted]
         end
       end
 
@@ -597,34 +563,6 @@ module RapidResources
       item = filter[:items].find { |item| item[:value] == filter_value }
 
       item&.[](:value) || nil
-    end
-
-    def parse_sort_param(new_sort)
-      collection_fields_str = collection_fields.map do |f|
-        if f.is_a?(CollectionField)
-          f.name.to_s
-        else
-          [*f].first.to_s
-        end
-      end
-
-      sort_field, sort_order = new_sort.to_s.split(':')
-      if sort_field&.starts_with?('-')
-        sort_field = sort_field[1..-1]
-        sort_order = 'desc'
-      end
-
-      if collection_fields_str.include?(sort_field)
-        s_field = sort_field.to_sym
-        s_asc = sort_order.blank? || sort_order == 'asc'
-        {
-          field: s_field,
-          asc: s_asc,
-          order_arg: s_asc ? s_field : {s_field => :desc}
-        }
-      else
-        {}
-      end
     end
   end
 end

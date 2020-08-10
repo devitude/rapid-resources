@@ -24,6 +24,10 @@ module RapidResources
       @url_helpers = url_helpers
     end
 
+    def logger
+      Rails.logger
+    end
+
     def model_class
       return @model_class if @model_class
       raise "Implement #model_class for #{self.class.name}"

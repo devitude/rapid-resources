@@ -101,6 +101,10 @@ module RapidResources
     # def init_grid_filters(filter_params = nil); end
 
     def grid_filters
+      if respond_to?(:init_grid_filters)
+        @grid_filters ||= init_grid_filters({})
+      end
+
       @grid_filters || []
     end
 
@@ -528,7 +532,9 @@ module RapidResources
 
     def filter_args=(filter_args)
       if respond_to?(:init_grid_filters)
-        init_grid_filters(filter_args)
+        # reset grid filters if filter_args are passed
+        @grid_filters = nil unless filter_args.nil?
+        @grid_filters ||= init_grid_filters(filter_args || {})
       else
         return unless filter_args.is_a?(Hash)
 

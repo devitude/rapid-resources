@@ -14,6 +14,7 @@ module RapidResources
     attr_reader :name, :current_user
     attr_accessor :return_to
     attr_accessor :jsonapi
+    attr_accessor :filter_ids
 
     # fixme: get rid of model_class, name and action
     def initialize(current_user, name: nil, model_class: nil, url_helpers: nil)
@@ -21,6 +22,7 @@ module RapidResources
       @model_class = model_class
       @current_user = current_user
       @url_helpers = url_helpers
+      @filter_ids = []
     end
 
     def logger
@@ -316,9 +318,11 @@ module RapidResources
     #   [:sort]
     # end
     def filter_params
-      grid_filters.map do |filter|
+      fparams = grid_filters.map do |filter|
         filter.multiple? ? { filter.name => [] } : filter.name
       end
+      fparams << { filter_id: [] } # special filter to filter by selected items
+      fparams
     end
 
     def filter_keys
@@ -467,6 +471,11 @@ module RapidResources
       items
     end
 
+    def apply_id_filter(items)
+      items = items.where(id: @filter_ids) if @filter_ids.count.positive?
+      items
+    end
+
     def apply_item_filter(items, filter)
       items
     end
@@ -478,6 +487,8 @@ module RapidResources
     end
 
     def filter_items(items)
+      items = apply_id_filter(items)
+
       grid_filters.each do |filter|
         next unless filter.has_value?
         if !manual_text_filter? && filter.type == GridFilter::TypeText && items.respond_to?(:full_text_search)
@@ -497,6 +508,11 @@ module RapidResources
     end
 
     def filter_args=(filter_args)
+      @filter_ids = []
+      if filter_args && filter_args[:filter_id].is_a?(Array)
+        @filter_ids = filter_args[:filter_id]
+      end
+
       if respond_to?(:init_grid_filters)
         # reset grid filters if filter_args are passed
         @grid_filters = nil unless filter_args.nil?

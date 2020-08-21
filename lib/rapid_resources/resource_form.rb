@@ -92,9 +92,9 @@ module RapidResources
       FormField.new(FormField::CHECK_BOX, name, options)
     end
 
-    def check_box_list(name, items, options = {})
+    def check_box_list(name, items, options = {}, &block)
       options[:items] = items
-      FormField.new(FormField::CHECK_BOX_LIST, name, options)
+      FormField.new(FormField::CHECK_BOX_LIST, name, options, &block)
     end
 
     def radio_button_list(name, items, options = {})

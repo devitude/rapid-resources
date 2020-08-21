@@ -81,7 +81,7 @@ module RapidResources
         options.merge!(params[0]) if Array === params && params.any? && Hash === params[0]
         options[:items] = field_or_name.items
 
-        html_block = field_or_name.block if field_or_name.type == :html
+        html_block = field_or_name.block if [:html, :check_box_list].include?(field_or_name.type)
 
         [field_or_name.name, field_or_name.type, options]
       else
@@ -207,7 +207,7 @@ module RapidResources
         check_box(name, @object.send(name), html_options)
       when :check_box_list
         items = options.delete(:items) || []
-        check_box_list(name, items, options)
+        check_box_list(name, items, options, &html_block)
       when :radio_button_list
         items = options.delete(:items) || []
         radio_button_list(name, items, options)
@@ -407,7 +407,7 @@ module RapidResources
 
           buffer
         end
-        cb_html << @template.capture(b.object, &block) if block_given?
+        cb_html << @template.instance_exec(b.object, &block) if block_given?
         cb_html
       end
       css_class = [*html_options[:class]]

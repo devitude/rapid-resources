@@ -462,10 +462,13 @@ module RapidResources
         cb_html << @template.capture(b.object, &block) if block_given?
         cb_html
       end
+      tag_html_options = html_options[:html]
+      tag_html_options = {} unless tag_html_options.is_a?(Hash)
+
       if inline
-        content_tag(:div, cb_items)
+        content_tag(:div, cb_items, tag_html_options)
       else
-        content_tag(:div, cb_items, class: 'custom-controls-stacked')
+        content_tag(:div, cb_items, { class: 'custom-controls-stacked' }.merge(tag_html_options))
       end
     end
 

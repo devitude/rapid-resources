@@ -57,6 +57,12 @@ module RapidResources
       end
       result
     end
+
+    def to_jsonapi_column2
+      result = to_jsonapi_column
+      result[:name] = result[:name].to_s.camelize(:lower)
+      result
+    end
   end
 
 end

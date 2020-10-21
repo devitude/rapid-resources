@@ -371,7 +371,7 @@ module RapidResources
       run_callbacks :load_res do
         @page ||= create_page
         @resource ||= load_resource
-        @page.resource = @resource
+        @page&.resource = @resource
         if (var_name = resource_var_name)
           instance_variable_set("@#{var_name}".to_sym, @resource)
         end

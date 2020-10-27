@@ -25,42 +25,6 @@ module RapidResources
 
     # define_callbacks :load_res
 
-    class_methods do
-      def model_class
-        nil
-      end
-
-      def page_class
-        nil
-      end
-
-      # def before_load_res(*args, &block) # :nodoc:
-      #   # set_options_for_callbacks!(args)
-      #   set_callback(:before_load_res, :before, *args, &block)
-      # end
-
-      # def after_load_res(*args, &block) # :nodoc:
-      #   # set_options_for_callbacks!(args)
-      #   set_callback(:after_load_res, :before, *args, &block)
-      # end
-
-      # define_callbacks :load_res
-
-      # def before_load_res(*names, &blk)
-      #   _insert_callbacks(names, blk) do |name, options|
-      #     set_callback(:load_res, :before, name, options)
-      #   end
-      # end
-
-      # [:before, :after, :around].each do |callback|
-      #   define_method "#{callback}_load_res" do |*names, &blk|
-      #     _insert_callbacks(names, blk) do |name, options|
-      #       set_callback(:load_res, callback, name, options)
-      #     end
-      #   end
-      # end
-    end
-
     def index
       authorize_resource :index?
 
@@ -286,8 +250,8 @@ module RapidResources
       super << 'resources'
     end
 
-    def with_resource_resolver
-      true
+    def page_class
+      nil
     end
 
     def jsonapi_form?
@@ -299,25 +263,14 @@ module RapidResources
       response_body
     end
 
-    def resource_resolver
-      return nil unless with_resource_resolver
-      @resource_resolver ||= ResourceResolver.new(controller_path,
-        model_class: self.class.model_class,
-        page_class: self.class.page_class)
-    end
-
     def page
       @page ||= create_page
     end
 
     # FIXME: migrate all pages and get rid of extra_params
     def create_page(page_class: nil, resource: nil)
-      page_class ||= self.class.page_class
-      new_page = if with_resource_resolver
-        resource_resolver.page(current_user, page_class: page_class, resource: resource, url_helpers: self)
-      else
-        page_class.new(current_user, name: controller_path, model_class: self.class.model_class, url_helpers: self)
-      end
+      page_class ||= self.page_class
+      new_page = page_class.new(current_user, name: controller_path, url_helpers: self)
 
       if expose_items = page_expose
         new_page.expose(expose_items)
@@ -337,11 +290,7 @@ module RapidResources
     end
 
     def resource_params
-      params_name = if with_resource_resolver
-        resource_resolver.params_name
-      else
-        page.model_class.to_s.underscore.gsub('/', '_')
-      end
+      params_name = page.model_class.to_s.underscore.gsub('/', '_')
 
       if request.format.jsonapi? && (deserializer = jsonapi_params_deserializer)
         resp = deserializer.call(params[:_jsonapi].to_unsafe_h)
@@ -383,11 +332,7 @@ module RapidResources
     end
 
     def load_resource
-      model = if with_resource_resolver
-        resource_resolver.model_class
-      else
-        page.model_class
-      end
+      model = page.model_class
 
       case params[:action]
       when *load_item_actions
@@ -425,17 +370,11 @@ module RapidResources
     end
 
     def resource_var_name
-      resource_resolver&.resource_var_name
+      page.model_class.model_name.singular.freeze
     end
 
     def load_current_resource(model = nil, resource_page = nil)
-      model ||= begin
-        if with_resource_resolver
-          resource_resolver.model_class
-        else
-          page.model_class
-        end
-      end
+      model ||= page.model_class
 
       resource_page ||= page
 

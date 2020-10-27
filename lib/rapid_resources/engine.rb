@@ -7,7 +7,6 @@ module RapidResources
     # autoload support
     config.to_prepare do
       require_dependency 'rapid_resources/resources_controller'
-      require_dependency 'rapid_resources/resource_resolver'
       require_dependency 'rapid_resources/resource_page'
       require_dependency 'rapid_resources/resource_form_builder'
       require_dependency 'rapid_resources/form_field'

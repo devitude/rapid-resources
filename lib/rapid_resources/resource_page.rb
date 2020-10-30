@@ -17,6 +17,7 @@ module RapidResources
 
     attr_accessor :return_to, :resource
     attr_accessor :jsonapi
+    attr_accessor :filter_ids
 
     # fixme: get rid of model_class, name
     def initialize(current_user, name: nil, model_class: nil, resource: nil, url_helpers: nil)
@@ -27,6 +28,8 @@ module RapidResources
       @sort_columns = []
       @resource = resource
       @url_helpers = url_helpers
+
+      @filter_ids = []
     end
 
     # transform column names to camelLower
@@ -119,6 +122,10 @@ module RapidResources
     end
 
     def grid_filters
+      @grid_filters ||= init_grid_filters({})
+    end
+
+    def init_grid_filters(filter_params)
       []
     end
 
@@ -344,7 +351,20 @@ module RapidResources
     # end
 
     def filter_params
-      grid_filters.map(&:name)
+      fparams = grid_filters.map do |filter|
+        filter.multiple? ? { filter.name => [] } : filter.name
+      end
+      fparams << { filter_id: [] } # special filter to filter by selected items
+      fparams
+    end
+
+    def filter_keys
+      # grid_filters.map(&:name)
+      result = filter_params.map { |fp| fp.is_a?(Hash) ? fp.keys : fp }
+      result.flatten!
+      result.compact!
+      result.uniq!
+      result
     end
 
     def default_scope
@@ -421,6 +441,11 @@ module RapidResources
       items
     end
 
+    def apply_id_filter(items)
+      items = items.where(id: @filter_ids) if @filter_ids.count.positive?
+      items
+    end
+
     def apply_item_filter(items, filter)
       items
     end
@@ -429,11 +454,19 @@ module RapidResources
       items.full_text_search(text)
     end
 
+    # if true, then
+    # full_text_search is handled manually in page
+    def manual_text_filter?
+      false
+    end
+
     def filter_items(items)
+      items = apply_id_filter(items)
+
       grid_filters.each do |filter|
         next unless filter.has_value?
-        if filter.type == GridFilter::TypeText && items.respond_to?(:full_text_search)
-          items = apply_full_text_search(items, filter.filtered_value)
+        if !manual_text_filter? && filter.type == GridFilter::TypeText && items.respond_to?(:full_text_search)
+          items = items.full_text_search(filter.selected_value)
           next # filter automatically handled, move to next
         end
 
@@ -448,14 +481,14 @@ module RapidResources
     end
 
     def filter_args=(filter_args)
-      return unless filter_args.is_a?(Hash)
-      filter_args.each do |fk, fv|
-        fk = fk.to_sym
-        filter = grid_filters.find { |gf| gf.name == fk }
-        next unless filter
-        filter.filtered_value = fv
-        Rails.logger.info("Handle filter: #{fk.inspect} => #{fv.inspect}")
+      @filter_ids = []
+      if filter_args && filter_args[:filter_id].is_a?(Array)
+        @filter_ids = filter_args[:filter_id]
       end
+
+      # reset grid filters if filter_args are passed
+      @grid_filters = nil unless filter_args.nil?
+      @grid_filters ||= init_grid_filters(filter_args || {})
     end
 
     def filter_args(with_defaults: true, as_str: false)

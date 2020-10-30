@@ -270,6 +270,8 @@ module RapidResources
     # FIXME: migrate all pages and get rid of extra_params
     def create_page(page_class: nil, resource: nil)
       page_class ||= self.page_class
+      return nil unless page_class
+
       new_page = page_class.new(current_user, name: controller_path, url_helpers: self)
 
       if expose_items = page_expose
@@ -370,6 +372,7 @@ module RapidResources
     end
 
     def resource_var_name
+      return nil unless page
       page.model_class.model_name.singular.freeze
     end
 

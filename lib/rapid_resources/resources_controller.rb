@@ -473,7 +473,7 @@ module RapidResources
           grid_items = grid_items.per(per_page)
         end
         grid_items = grid_items.page(1) if grid_items.current_page > grid_items.total_pages
-        paginator = GridPaginator.new(total_pages: grid_items.total_pages, current_page: grid_items.current_page, per_page: grid_items.current_per_page)
+        paginator = GridPaginator.new(total_pages: grid_items.total_pages, current_page: grid_items.current_page, per_page: grid_items.limit_value)
       end
 
       if grid_page.collection_actions.include?(:edit)

@@ -5,13 +5,15 @@ module RapidResources
     TypeDateRange = :daterange
     TypeAutocomplete = :autocomplete
     TypeList = :list
+    TypeCustom = :custom
 
     attr_reader :name, :type, :title, :notice,
-      :items, :autocomplete_url, :visible, :placeholder, :multi_select
+      :items, :autocomplete_url, :visible, :placeholder, :multi_select,
+      :component_name
 
     def initialize(name, type:, title: nil, selected_value: nil, notice: nil,
       items: nil, autocomplete_url: nil, visible: true, placeholder: nil, first_item_default: false,
-      empty_title: nil, optional: nil, multi_select: nil, &block)
+      empty_title: nil, optional: nil, multi_select: nil, component_name: nil, &block)
       @visible = visible
 
       @name = name
@@ -35,6 +37,8 @@ module RapidResources
         setup_list_items(first_item_default)
       end
 
+      @component_name = component_name if custom?
+
       yield self if block_given?
     end
 
@@ -48,6 +52,10 @@ module RapidResources
 
     def autocomplete?
       @type == TypeAutocomplete
+    end
+
+    def custom?
+      @type == TypeCustom
     end
 
     def daterange?
@@ -87,6 +95,11 @@ module RapidResources
 
       def daterange(name, options = {})
         options = { type: TypeDateRange }.merge(options)
+        new(name, **options)
+      end
+
+      def custom(name, component_name, options = {})
+        options = { type: TypeCustom, component_name: component_name }.merge(options)
         new(name, **options)
       end
     end
@@ -153,6 +166,7 @@ module RapidResources
         items: items,
         autocomplete_url: autocomplete_url,
       }
+      result[:component_name] = @component_name if custom?
       result[:empty_title] = @empty_title if @empty_title.present?
       result[:optional] = @optional unless @optional.nil?
       result[:multiple] = multiple?

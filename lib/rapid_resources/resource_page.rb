@@ -118,7 +118,7 @@ module RapidResources
     end
 
     def grid_component
-      'grid'
+      ['div', 'Grid']
     end
 
     def grid_filters

@@ -11,5 +11,5 @@
   <%= render partial: 'item_list', locals: {page: page, items: items} %>
   <%= render partial: 'item_list_after', locals: { page: page, items: items } %>
 <% else %>
-  <%= content_tag page.grid_component, '', 'data-list-url' => url_for(page.grid_list_url), 'ref' => 'indexGrid' %>
+  <%= resource_page_grid_component_tag page %>
 <% end %>

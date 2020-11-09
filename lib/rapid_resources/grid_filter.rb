@@ -9,11 +9,11 @@ module RapidResources
 
     attr_reader :name, :type, :title, :notice,
       :items, :autocomplete_url, :visible, :placeholder, :multi_select,
-      :component_name
+      :component_name, :component_options
 
     def initialize(name, type:, title: nil, selected_value: nil, notice: nil,
       items: nil, autocomplete_url: nil, visible: true, placeholder: nil, first_item_default: false,
-      empty_title: nil, optional: nil, multi_select: nil, component_name: nil, &block)
+      empty_title: nil, optional: nil, multi_select: nil, component_name: nil, component_options: nil, &block)
       @visible = visible
 
       @name = name
@@ -37,7 +37,10 @@ module RapidResources
         setup_list_items(first_item_default)
       end
 
-      @component_name = component_name if custom?
+      if custom?
+        @component_name = component_name
+        @component_options = component_options
+      end
 
       yield self if block_given?
     end
@@ -166,7 +169,10 @@ module RapidResources
         items: items,
         autocomplete_url: autocomplete_url,
       }
-      result[:component_name] = @component_name if custom?
+      if custom?
+        result[:component_name] = @component_name
+        result[:component_options] = @component_options
+      end
       result[:empty_title] = @empty_title if @empty_title.present?
       result[:optional] = @optional unless @optional.nil?
       result[:multiple] = multiple?

@@ -18,7 +18,7 @@ module RapidResources
 
       @name = name
       @type = type
-      @multi_select = (list? || autocomplete?) && multi_select == true
+      @multi_select = (list? || autocomplete? || custom?) && multi_select == true
 
       @title = title
       self.selected_value = selected_value
@@ -67,7 +67,7 @@ module RapidResources
 
     def multiple?
       return true if daterange?
-       (list? || autocomplete?) && @multi_select
+       (list? || autocomplete? || custom?) && @multi_select
     end
 
     class << self

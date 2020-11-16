@@ -17,9 +17,8 @@ module RapidResources
     attr_accessor :filter_ids
 
     # fixme: get rid of model_class, name and action
-    def initialize(current_user, name: nil, model_class: nil, url_helpers: nil)
+    def initialize(current_user, name: nil, url_helpers: nil)
       @name = name
-      @model_class = model_class
       @current_user = current_user
       @url_helpers = url_helpers
       @filter_ids = []
@@ -30,7 +29,6 @@ module RapidResources
     end
 
     def model_class
-      return @model_class if @model_class
       raise "Implement #model_class for #{self.class.name}"
     end
 

@@ -111,6 +111,7 @@ module RapidResources
             'html' => render_to_string(r_params.merge(layout: false, formats: [:html]))
           }
           json_data.merge! get_additional_json_data
+          json_data = _transform_js_keys(json_data) if page.transform_jsonapi_keys
           render json: json_data #, formats: [:json]
         end
       end
@@ -145,6 +146,7 @@ module RapidResources
             'html' => render_to_string(:new, r_params.merge(layout: false, formats: [:html]))
           }
           json_data.merge! get_additional_json_data
+          json_data = _transform_js_keys(json_data) if page.transform_jsonapi_keys
           render json: json_data #, formats: [:json]
         end
       end
@@ -190,6 +192,7 @@ module RapidResources
             end
           end
           json_data.merge! get_additional_json_data
+          json_data = _transform_js_keys(json_data) if page.transform_jsonapi_keys
           render json: json_data #, formats: [:json]
         end
       end
@@ -226,6 +229,7 @@ module RapidResources
             'html' => render_to_string(:edit, r_params.merge(layout: false, formats: [:html]))
           }
           json_data.merge! get_additional_json_data
+          json_data = _transform_js_keys(json_data) if page.transform_jsonapi_keys
           render json: json_data #, formats: [:json]
         end
       end
@@ -386,6 +390,7 @@ module RapidResources
         format.json do
           json_data = {'status' => 'success'}
           json_data.merge! get_additional_json_data
+          json_data = _transform_js_keys(json_data) if page.transform_jsonapi_keys
           render json: json_data
         end
       end
@@ -670,6 +675,12 @@ module RapidResources
       else
         @resource.destroy
       end
+    end
+
+    def _transform_js_keys(data)
+      result = { data: data}
+      result = result.deep_transform_keys { |k| k.to_s.camelize(:lower) }
+      result['data']
     end
 
   end

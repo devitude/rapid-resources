@@ -202,7 +202,8 @@ module RapidResources
       when :select
         choices = options.delete(:choices) || []
         select_options = options.delete(:options) || {}
-        select name, choices, select_options, options.merge(class: css_class(options, select_control_class))
+        options = options.merge(class: css_class(options, select_control_class)) unless options[:class]
+        select name, choices, select_options, options
       when :collection_select
         select_options = {
           prompt: options.delete(:prompt),

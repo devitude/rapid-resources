@@ -48,7 +48,7 @@ module RapidResources
         [{name => []}]
       # elsif @type == DATETIME_FIELD
       #   [{name => [:date, :time]}]
-      elsif @type == COLLECTION_SELECT && @options[:multiple]
+      elsif (@type == COLLECTION_SELECT && @options[:multiple]) || @options[:array]
         [{name => []}]
       else
         [name]

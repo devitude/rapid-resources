@@ -327,7 +327,17 @@ module RapidResources
       elsif options[:array_idx]
         scoped_field(:hidden_field, name, options)
       else
-        super(name, options)
+        if options.delete(:array)
+          result = ''.html_safe
+          value = [*@object.send(name)]
+          value << '' if value.count.zero?
+          value.each do |val|
+            result << hidden_field(name, options.merge(value: val))
+          end
+          result
+        else
+          super(name, options)
+        end
       end
     end
 

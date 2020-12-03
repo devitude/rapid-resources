@@ -1,0 +1,7 @@
+<% if (resource_form = page.form(item)) %>
+  <% if resource_form.has_form_fields? %>
+    <%= fields_for item, nil, resource_form_options(item, page, remote: @modal || false, local: !@modal, small: @modal, html: {ref: 'inputForm', 'data-type' => jsonapi_form ? 'json' : nil}) do |f| %>
+      <%= render partial: 'resources/form_fields', locals: { f: f, page: page, item: item, tabs: resource_form.tabs } %>
+    <% end %>
+  <% end %>
+<% end %>

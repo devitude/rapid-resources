@@ -562,7 +562,7 @@ module RapidResources
       render jsonapi: form_data, status: status
     end
 
-    def render_jsonapi_form(error: nil, form_id: nil, form_page: nil)
+    def render_jsonapi_form(error: nil, form_id: nil, form_page: nil, form_partial: 'form')
       form_page ||= page
 
       old_modal = @modal
@@ -573,7 +573,7 @@ module RapidResources
       form_data = ResourceFormData.new(id: "frm-#{frm_id}") #(id: 'new-project')
       # form_data.submit_title = @resource.new_record? ? 'Create new project' : 'Save project' # page.t(@resource.persisted? ? :'form_action.update' : :'form_action.create')
       form_data.submit_title = form_page.t(@resource.persisted? ? :'form_action.update' : :'form_action.create')
-      form_data.html = render_to_string(partial: 'form',
+      form_data.html = render_to_string(partial: form_partial,
         formats: [:html],
         locals: {
           page: form_page,

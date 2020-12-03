@@ -187,7 +187,8 @@ module RapidResources
     end
 
     def html(options = {}, &block)
-      FormField.new(FormField::HTML, nil, options, &block)
+      name = options.delete(:name)
+      FormField.new(FormField::HTML, name, options, &block)
     end
 
     def block(title, options, &block)

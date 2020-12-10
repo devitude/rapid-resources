@@ -2,7 +2,7 @@ module RapidResources::Ext::HumanAttributeName
   extend ActiveSupport::Concern
 
   class_methods do
-    supported_rails_v = '6.0.3.4'
+    supported_rails_v = '6.1.0'
     if Rails.version != supported_rails_v
       raise RuntimeError, "RapidResources::Ext::HumanAttributeName supports only rails #{supported_rails_v}"
     end

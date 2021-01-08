@@ -50,7 +50,7 @@ module RapidResources
           fields = []
           obj = self.new(required_fields_attributes(context))
           obj.validate(context)
-          obj.errors.keys.each do |e_attribute|
+          obj.errors.attribute_names.each do |e_attribute|
             fields << e_attribute if obj.errors.added?(e_attribute, :blank)
           end
           fields
@@ -86,8 +86,8 @@ module RapidResources
 
     def error_messages
       error_messages = []
-      errors.each do |attribute, message|
-        error_messages << [attribute, errors.full_message(attribute, message)]
+      errors.each do |error|
+        error_messages << [error.attribute, error.full_message]
       end
 
       error_messages

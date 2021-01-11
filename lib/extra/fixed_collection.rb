@@ -25,7 +25,8 @@ class FixedCollection
     end
 
     def collection_items
-      @collection_items ||= all.map{ |item| [item.title, item.value] }
+      # can't use @collection_items ||= because on production it will cache the current language
+      all.map{ |item| [item.title, item.value] }
     end
 
     def valid?(value)

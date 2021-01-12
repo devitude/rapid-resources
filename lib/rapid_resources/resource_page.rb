@@ -466,7 +466,7 @@ module RapidResources
       grid_filters.each do |filter|
         next unless filter.has_value?
         if !manual_text_filter? && filter.type == GridFilter::TypeText && items.respond_to?(:full_text_search)
-          items = items.full_text_search(filter.selected_value)
+          items = apply_full_text_search(items, filter.selected_value)
           next # filter automatically handled, move to next
         end
 

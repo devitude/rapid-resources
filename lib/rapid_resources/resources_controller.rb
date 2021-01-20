@@ -373,7 +373,7 @@ module RapidResources
 
     def resource_var_name
       return nil unless page
-      page.model_class.model_name.singular.freeze
+      page.model_class&.model_name&.singular&.freeze
     end
 
     def load_current_resource(model = nil, resource_page = nil)

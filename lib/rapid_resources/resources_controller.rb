@@ -12,6 +12,16 @@ module RapidResources
     #   end
     # end
 
+    class_methods do
+      [:before, :after, :around].each do |callback|
+        define_method "#{callback}_load_res" do |*names, &blk|
+          _insert_callbacks(names, blk) do |name, options|
+            set_callback(:load_res, callback, name, options)
+          end
+        end
+      end
+    end
+
     included do
       # append_view_path File.expand_path("../../views", __FILE__)
 
@@ -22,8 +32,6 @@ module RapidResources
 
       define_callbacks :load_res
     end
-
-    # define_callbacks :load_res
 
     def index
       authorize_resource :index?

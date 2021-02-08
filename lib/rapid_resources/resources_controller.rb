@@ -537,7 +537,8 @@ module RapidResources
     end
 
     def grid_links(page)
-      { new: url_for({ action: :new}) } if page.index_actions.include?(:new)
+      links = { new: url_for({ action: :new}) } if page.index_actions.include?(:new)
+      page.jsonapi_links(links || {})
     end
 
     def grid_meta(attributes)

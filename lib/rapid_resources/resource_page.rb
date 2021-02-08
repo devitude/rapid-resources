@@ -141,6 +141,10 @@ module RapidResources
       { action: :index }
     end
 
+    def jsonapi_links(links)
+      links
+    end
+
     def index_actions
       [].freeze
     end

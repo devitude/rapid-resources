@@ -99,7 +99,7 @@ module RapidResources
       with_swallow_save_excetions { super }
     end
 
-    def save!(*options, &block)
+    def save!(**options, &block)
       current_swallow, Thread.current[:swallow_save_exceptions] = Thread.current[:swallow_save_exceptions], false
 
       on_save

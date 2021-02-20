@@ -558,6 +558,7 @@ module RapidResources
       control_options['data-allow-other'] = 'true' if options[:allow_other]
       control_options['data-placeholder'] = options[:placeholder] if options[:placeholder]
       control_options['data-allow-clear'] = 'true' if options[:allow_clear]
+      control_options['data-auto-fill'] = 'true' if options[:auto_fill]
       control_options['ref'] = options[:ref] if options[:ref]
 
       items = items.map do |item|

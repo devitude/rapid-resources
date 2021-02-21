@@ -507,6 +507,7 @@ module RapidResources
 
     def date_field(name, value, html_options = {})
       readonly = html_options.delete(:readonly)
+      date_format = html_options.delete(:date_format) || '%d/%m/%Y'
       css_class = [*html_options[:class]]
       css_class << 'date-picker date'
       css_class << 'datetime' if html_options.delete(:datetime)
@@ -514,7 +515,7 @@ module RapidResources
       content_tag :div, html_options do
         input_options = { class: 'form-control form-control-sm', 'ref' => 'date' }
         input_options[:readonly] = true if readonly
-        input_options[:value] = value.respond_to?(:strftime) ? value.strftime('%d/%m/%Y') : value.to_s
+        input_options[:value] = value.respond_to?(:strftime) ? value.strftime(date_format) : value.to_s
         text_field(name, input_options)
       end
     end

@@ -1,10 +1,11 @@
 module RapidResources
   class FieldRow
 
-    attr_reader :title, :html_options, :options
+    attr_reader :title, :html_options, :options, :vertical
 
-    def initialize(*fields, title: nil, html_options: nil, options: nil)
+    def initialize(*fields, title: nil, vertical: false, html_options: nil, options: nil)
       @title = title
+      @vertical = vertical
       @html_options = html_options
       @options = options || {}
 
@@ -15,6 +16,7 @@ module RapidResources
       end
       @empty_col_class = 'col'
       @empty_col_class = "col-md-#{12 / empty_cols}" if empty_cols == @fields.count && empty_cols > 0
+      @empty_col_class = nil if vertical
     end
 
     def check_box_list?
@@ -34,7 +36,9 @@ module RapidResources
     def each_col
       return unless block_given?
       @fields.each do |field, col|
-        col = if col.is_a? Numeric
+        col = if vertical
+          nil
+        elsif col.is_a? Numeric
           "col-md-#{col}"
         elsif col == :auto
           'col-auto'

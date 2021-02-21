@@ -545,8 +545,8 @@ module RapidResources
         if name.to_s.ends_with?('_id') && !f_item.blank? && @object.respond_to?(f_item)
 
           if (obj = @object.send(f_item)) && obj.respond_to?(id_field) && obj.respond_to?(title_field)
-            selected_id    = f_item&.send(id_field)
-            selected_title = f_item&.send(title_field)
+            selected_id    = obj&.send(id_field)
+            selected_title = obj&.send(title_field)
           end
         else
           selected_id = @object.send(name)

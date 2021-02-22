@@ -579,7 +579,7 @@ module RapidResources
       @modal = true
       form_page.display_form_errors = false
       frm_id = controller_path.split('/').last.singularize.camelize.freeze
-      form_data = ResourceFormData.new(id: "frm-#{frm_id}") #(id: 'new-project')
+      form_data = jsonapi_resource_form_data(frm_id) #(id: 'new-project')
       # form_data.submit_title = @resource.new_record? ? 'Create new project' : 'Save project' # page.t(@resource.persisted? ? :'form_action.update' : :'form_action.create')
       form_data.submit_title = form_page.t(@resource.persisted? ? :'form_action.update' : :'form_action.create')
       form_data.html = render_to_string(partial: form_partial,
@@ -594,9 +594,9 @@ module RapidResources
 
       if error.present?
         if error.is_a?(Result) && error.error.present?
-          form_data.meta = { error: { message: "An error occured: #{error.error}"} }
+          form_data.meta[:error] = { message: "An error occured: #{error.error}"}
         else
-          form_data.meta = { error: { message: 'An error occured', details: @resource.error_messages.map(&:second) } }
+          form_data.meta[:error] = { message: 'An error occured', details: @resource.error_messages.map(&:second) }
         end
         render jsonapi: form_data, status: 422
       else
@@ -622,6 +622,10 @@ module RapidResources
         }
       }.merge(options)
       render render_options
+    end
+
+    def jsonapi_resource_form_data(form_id)
+      ResourceFormData.new(id: "frm-#{form_id}")
     end
 
     private

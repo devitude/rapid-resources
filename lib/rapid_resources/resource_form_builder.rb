@@ -69,6 +69,7 @@ module RapidResources
       end
 
       html_block = nil
+      field_block = nil
 
       name, type, options, css_class = if field_or_name.is_a?(RapidResources::FormField)
         validation_keys = field_or_name.validation_keys
@@ -77,7 +78,11 @@ module RapidResources
         options.merge!(params[0]) if Array === params && params.any? && Hash === params[0]
         options[:items] = field_or_name.items
 
-        html_block = field_or_name.block if field_or_name.type == :html
+        if field_or_name.type == :html
+          html_block = field_or_name.block
+        else
+          field_block = field_or_name.block
+        end
 
         [field_or_name.name, field_or_name.type, options]
       else
@@ -221,7 +226,11 @@ module RapidResources
           select name, options.delete(:items), select_options, options.merge(class: css_class(options, select_control_class))
         end
       when :read_only
-        read_only(name, options)
+        if field_block
+          read_only(name, options, &field_block)
+        else
+          read_only(name, options, &block)
+        end
       when :custom
         if block_given?
           @template.capture(&block)
@@ -259,7 +268,7 @@ module RapidResources
               attr_name = options[:label].is_a?(Symbol) ? options[:label] : name
               object.class.human_attribute_name(attr_name, form: true)
             end
-            opts[:class] = 'required' if @required_fields.include?(name)
+            opts[:class] = 'required' if @required_fields.include?(name) && options[:required] != false
             concat label(name, label_text, opts)
           else
             control_class = "#{control_class}"
@@ -581,13 +590,26 @@ module RapidResources
       end
     end
 
-    def read_only(name, options = {})
+    def read_only(name, options = {}, &block)
       html_options = options[:html].dup || {}
-      html_options[:class] = css_class(html_options, form_control_class)
-      html_options[:readonly] = true
       value = options[:value] || @object.send(name)
-      @template.text_field_tag(nil, value, html_options)
-      # @template.text_field('candidate', name, html_options)
+
+      if options[:text_field] == false
+        default_css_class = 'read-only-field'
+        default_css_class << ' no-value' if options[:no_value]
+        html_options[:class] = css_class(html_options, default_css_class)
+        if block_given?
+          Rails.logger.info("🤯 RO WITH BLOCK ...")
+          @template.tag.div(@template.instance_eval(&block), **html_options)
+        else
+          @template.tag.div(value, **html_options)
+        end
+      else
+        html_options[:class] = css_class(html_options, form_control_class)
+        html_options[:readonly] = true
+        @template.text_field_tag(nil, value, html_options)
+        # @template.text_field('candidate', name, html_options)
+      end
     end
 
     def buttons(options = {})

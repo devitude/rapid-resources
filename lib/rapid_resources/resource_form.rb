@@ -167,6 +167,11 @@ module RapidResources
       FormField.new(FormField::READ_ONLY, name, options)
     end
 
+    def read_only_text(name, options = {}, &block)
+      options.merge!(text_field: false)
+      FormField.new(FormField::READ_ONLY, name, options, &block)
+    end
+
     def custom_field(name, helper_method, options = {})
       options[:helper_method] = helper_method
       options[:field_names] ||= [] unless options[:field_names]

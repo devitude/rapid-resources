@@ -83,7 +83,7 @@ module RapidResources
 
       def multi_list(name, options = {})
         options = { type: TypeList, multi_select: true }.merge(options)
-        new(name, options)
+        new(name, **options)
       end
 
       def autocomplete(name, options = {})

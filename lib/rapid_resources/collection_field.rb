@@ -43,7 +43,7 @@ module RapidResources
         title: title,
         sortable: sortable,
         sorted: sorted,
-        css_class: css_class,
+        cssClass: css_class,
       }
       result[:headerCssClass] = header_css_class if header_css_class.present?
       if type.present?

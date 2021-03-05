@@ -594,7 +594,13 @@ module RapidResources
 
       if error.present?
         if error.is_a?(Result) && error.error.present?
-          form_data.meta[:error] = { message: "An error occured: #{error.error}"}
+          error_msg = if error.error.present? && error.error[0] == '^'
+            error.error[1..]
+          else
+            "An error occured: #{error.error}"
+          end
+          form_data.meta[:error] = { message: error_msg }
+          form_data.meta[:error][:details] = error[:details] if error[:details].is_a?(Array)
         else
           form_data.meta[:error] = { message: 'An error occured', details: @resource.error_messages.map(&:second) }
         end

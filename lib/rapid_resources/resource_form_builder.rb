@@ -599,7 +599,6 @@ module RapidResources
         default_css_class << ' no-value' if options[:no_value]
         html_options[:class] = css_class(html_options, default_css_class)
         if block_given?
-          Rails.logger.info("🤯 RO WITH BLOCK ...")
           @template.tag.div(@template.instance_eval(&block), **html_options)
         else
           @template.tag.div(value, **html_options)

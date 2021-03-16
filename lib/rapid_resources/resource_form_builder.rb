@@ -544,7 +544,7 @@ module RapidResources
       title_field = options.delete(:title_field) || :title
       multiple = options.delete(:multiple) || false
 
-      selected_id    = nil
+      selected_id    = options.delete(:value)
       selected_title = nil
       if Hash === options[:selected] && options[:selected].key?(id_field) && options[:selected].key?(title_field)
         selected_id    = options[:selected][id_field]
@@ -558,7 +558,7 @@ module RapidResources
             selected_title = obj&.send(title_field)
           end
         else
-          selected_id = @object.send(name)
+          selected_id ||= @object.send(name)
         end
       end
 
@@ -574,6 +574,7 @@ module RapidResources
       control_options['data-auto-fill'] = 'true' if options[:auto_fill]
       control_options['multiple'] = 'true' if multiple
       control_options['ref'] = options[:ref] if options[:ref]
+      control_options.merge! options[:html] if options[:html]
 
       items = items.map do |item|
         if item.is_a?(Hash)
@@ -583,10 +584,12 @@ module RapidResources
         end
       end
 
+      # Without "include_blank: true" rails incorrectly handles remote form
+      # with outocomplete. If value is cleared, an empty value is not sent to the server. Parameter is omitted from request
       if options[:field_tag]
-        @template.select_tag name, @template.options_for_select(items, selected_id), control_options
+        @template.select_tag name, @template.options_for_select(items, selected_id), control_options.merge(include_blank: true)
       else
-        select name, @template.options_for_select(items, selected_id), {}, control_options
+        select name, @template.options_for_select(items, selected_id), {include_blank: true}, control_options
       end
     end
 

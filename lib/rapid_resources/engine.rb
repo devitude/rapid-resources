@@ -13,6 +13,8 @@ module RapidResources
       require_dependency 'rapid_resources/field_row'
       require_dependency 'rapid_resources/resource_form'
       require_dependency 'rapid_resources/base_filter'
+      require_dependency 'rapid_resources/collection_field'
+      require_dependency 'rapid_resources/additional_column'
     end
   end
 end

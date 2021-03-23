@@ -463,6 +463,7 @@ module RapidResources
           .to_h
       end
 
+      grid_page.selected_additional_column_ids = params[:col].to_s.split(',')
       grid_page.sort_param = params[:sort].to_s if params[:sort]
       grid_page.filter_args = filter_params#params.permit(*grid_page.filter_params).to_h
       grid_items ||= grid_page.load_items(filter_params: filter_params)
@@ -506,6 +507,7 @@ module RapidResources
         page_first_index: paginator&.first_idx_in_page || 1,
         headerActions: grid_page.grid_header_actions,
         additional_header_actions: grid_page.grid_additional_header_actions,
+        additional_columns: grid_page.additional_columns.map(&:to_jsonapi),
       }
       meta_fields.merge!(additional_meta) if additional_meta.is_a?(Hash)
 

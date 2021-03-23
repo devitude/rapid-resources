@@ -253,6 +253,24 @@ module RapidResources
       [].freeze
     end
 
+    def additional_columns
+      @additional_columns ||= [].freeze
+    end
+
+    def selected_additional_columns
+      @additional_columns.filter(&:selected?)
+    end
+
+    def selected_additional_column_ids
+      selected_additional_columns.map(&:id)
+    end
+
+    def selected_additional_column_ids=(new_ids)
+      additional_columns.each do |col|
+        col.selected = new_ids.include?(col.id) || new_ids.include?(col.id.to_s)
+      end
+    end
+
     def json_fields
       [].freeze
     end

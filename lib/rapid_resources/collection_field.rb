@@ -1,6 +1,6 @@
 module RapidResources
   class CollectionField
-    attr_reader :name, :jsonapi_name, :title, :sortable, :link_to, :cell_helper_method, :css_class, :header_css_class
+    attr_reader :name, :jsonapi_name, :title, :sortable, :link_to, :cell_helper_method, :css_class, :header_css_class, :truncate
     attr_accessor :sorted
     attr_reader :type
 
@@ -15,7 +15,7 @@ module RapidResources
       end
     end
 
-    def initialize(name, jsonapi_name: nil, sortable: false, title: nil, link_to: nil, sorted: nil, cell_helper_method: nil, type: nil, css_class: nil, header_css_class: nil)
+    def initialize(name, jsonapi_name: nil, sortable: false, title: nil, link_to: nil, sorted: nil, cell_helper_method: nil, type: nil, css_class: nil, header_css_class: nil, truncate: false)
       @name = name
       @jsonapi_name = jsonapi_name
       @sortable = sortable
@@ -27,6 +27,7 @@ module RapidResources
       @type = type
       @css_class = css_class
       @header_css_class = header_css_class
+      @truncate = truncate
     end
 
     def match_name?(name)
@@ -44,6 +45,7 @@ module RapidResources
         sortable: sortable,
         sorted: sorted,
         cssClass: css_class,
+        truncate: truncate,
       }
       result[:headerCssClass] = header_css_class if header_css_class.present?
       if type.present?

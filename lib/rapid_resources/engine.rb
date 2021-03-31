@@ -15,6 +15,7 @@ module RapidResources
       require_dependency 'rapid_resources/base_filter'
       require_dependency 'rapid_resources/collection_field'
       require_dependency 'rapid_resources/additional_column'
+      require_dependency 'rapid_resources/jsonapi_form_helpers.rb'
     end
   end
 end

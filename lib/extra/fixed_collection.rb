@@ -2,12 +2,15 @@ class FixedCollection
 
   attr_reader :value
 
-  def initialize(value, title_key = nil)
+  def initialize(value, title_key = nil, title: nil)
     @value = value
     @title_key = title_key
+    @title = title if title
   end
 
   def title
+    return @title if @title
+
     @title_key.blank? ? '' : I18n.t(@title_key)
   end
 

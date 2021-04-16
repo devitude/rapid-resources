@@ -219,7 +219,8 @@ module RapidResources
         options['data-autocomplete'] = 'true' if options.delete(:autocomplete)
         select_options[:selected] = options.delete(:selected) if options.key?(:selected)
         if options[:value_field] || options[:title_field]
-          options = options.merge(class: css_class(options, select_control_class)) unless options[:class]
+          set_css_class = options[:class].blank? || options[:class] == 'is-invalid'
+          options = options.merge(class: css_class(options, select_control_class)) if set_css_class
           collection_select name, options.delete(:items), options.delete(:value_field),
             options.delete(:title_field), select_options, options
         else

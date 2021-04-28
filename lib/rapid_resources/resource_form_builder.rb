@@ -275,7 +275,7 @@ module RapidResources
               attr_name = options[:label].is_a?(Symbol) ? options[:label] : name
               object.class.human_attribute_name(attr_name, form: true)
             end
-            opts[:class] = 'required' if @required_fields.include?(name) && options[:required] != false
+            opts[:class] = 'required' if (options[:required] || @required_fields.include?(name)) && options[:required] != false
             concat label(name, label_text, opts)
           else
             control_class = "#{control_class}"

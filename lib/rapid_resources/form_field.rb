@@ -52,6 +52,8 @@ module RapidResources
         [{name => []}]
       elsif (@type == AUTOCOMPLETE && options[:multiple])
         [{name => []}]
+      elsif options[:scope]
+        [{options[:scope] => [name]}]
       else
         [name]
       end

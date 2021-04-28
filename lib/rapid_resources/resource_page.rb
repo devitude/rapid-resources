@@ -288,6 +288,20 @@ module RapidResources
           end
         end
       end
+
+      # need a special case for :scope handling. Param hashes needs to be combined
+      # for example, if there is field ":time, scope: [:date]" and ":time_zone, scope: [:date]", it should create { date: [:time, :time_zone] } param
+      combined_hash = {}
+      permitted_fields.each do |f|
+        next unless Hash === f
+        f.each do |k, v|
+          combined_hash[k] = [*combined_hash[k]]
+          combined_hash[k].concat [*v]
+        end
+      end
+      # remove all hashes in permitted_fields
+      permitted_fields.delete_if { |v| Hash === v }
+      permitted_fields << combined_hash # add combined hash
       permitted_fields
     end
 

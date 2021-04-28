@@ -66,6 +66,12 @@ module RapidResources
           concat row_html
           # concat content_tag(:div, row_html, class: 'card card-body')
         end
+      elsif field_or_name.is_a?(RapidResources::FormField) && field_or_name.options[:scope].present?
+        scope = field_or_name.options.delete(:scope)
+        scoped_html = fields scope, model: @object do |flds|
+          flds.field(field_or_name, *params, &block)
+        end
+        return scoped_html
       end
 
       html_block = nil
@@ -323,31 +329,20 @@ module RapidResources
 
     def text_field(name, options = {})
       options[:class] = [form_control_class, options[:class]].compact.join(' ')
-
-      if options[:scope]
-        scoped_field(:text_field, name, options)
-      else
-        super(name, options)
-      end
+      super(name, options)
     end
 
     def hidden_field(name, options = {})
-      if options[:scope]
-        scoped_field(:hidden_field, name, options)
-      elsif options[:array_idx]
-        scoped_field(:hidden_field, name, options)
-      else
-        if options.delete(:array)
-          result = ''.html_safe
-          value = [*@object.send(name)]
-          value << '' if value.count.zero?
-          value.each do |val|
-            result << hidden_field(name, options.merge(value: val))
-          end
-          result
-        else
-          super(name, options)
+      if options.delete(:array)
+        result = ''.html_safe
+        value = [*@object.send(name)]
+        value << '' if value.count.zero?
+        value.each do |val|
+          result << hidden_field(name, options.merge(value: val))
         end
+        result
+      else
+        super(name, options)
       end
     end
 
@@ -358,34 +353,6 @@ module RapidResources
       options[:object] = scoped_object if scoped_object
 
       [options, scope, scoped_object]
-    end
-
-    def scoped_field(field_name, method, options)
-      # cant use objectify_options(options) because that method overrides :options key
-
-      options, scope, scoped_object = extract_scope(options)
-
-
-      # options, scope, scoped_object = if options[:scope]
-      #   extract_scope(options)
-      # else
-      #   [options, method, field_name]
-      # end
-
-      # array_idx = options.delete(:array_idx)
-      # options[:object] ||= @object
-
-      # if array_idx == true
-      #   scope = "#{scope}[]"
-      # elsif array_idx
-      #   scope = "#{scope}[#{array_idx}]"
-      # end
-
-      @template.send( #   @template.send(
-          field_name, #     "text_field",
-          scope,      #     @object_name,
-          method,     #     method,
-          options)    #     objectify_options(options))'
     end
 
     def check_box(name, html_options = {}, checked_value = '1', unchecked_value = '0')
@@ -691,28 +658,6 @@ module RapidResources
         options = { wrap_controls: false }.merge(options)
         field(form_field, options)
       end
-    end
-
-    def fields(only: [], except: [])
-      only = [] unless Array === only
-      except = [] unless Array === except
-
-      response = "".html_safe
-      if only.any?
-        @page.form(@object).each do |form_field|
-          response << field(form_field) if only.include?(form_field.name)
-        end
-      elsif except.any?
-        @page.form(@object).each do |form_field|
-          response << field(form_field) unless except.include?(form_field.name)
-        end
-      else
-        # render all fields
-        @page.form(@object).each do |form_field|
-          response << field(form_field)
-        end
-      end
-      response
     end
 
     protected

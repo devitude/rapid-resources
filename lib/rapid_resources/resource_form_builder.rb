@@ -570,8 +570,11 @@ module RapidResources
       control_options['data-placeholder'] = options[:placeholder] if options[:placeholder]
       control_options['data-allow-clear'] = 'true' if options[:allow_clear]
       control_options['ref'] = options[:ref] if options[:ref]
+      control_options.merge!(options[:html_options] || {})
 
-      items = items.map{ |item| [item.send(title_field), item.send(id_field)] }
+      unless options[:raw_items]
+        items = items.map { |item| [item.send(title_field), item.send(id_field)] }
+      end
 
       if options[:field_tag]
         @template.select_tag name, @template.options_for_select(items, selected_id), control_options

@@ -7,8 +7,16 @@ class FixedCollection
     @title_key = title_key
   end
 
-  def title
-    @title_key.blank? ? '' : I18n.t(@title_key)
+  def title(locale: nil)
+    @title_key.blank? ? '' : I18n.t(@title_key, locale: locale)
+  end
+
+  def title_en
+    title(locale: :en)
+  end
+
+  def title_fr
+    title(locale: :fr)
   end
 
   class << self
@@ -25,7 +33,8 @@ class FixedCollection
     end
 
     def collection_items
-      @collection_items ||= all.map{ |item| [item.title, item.value] }
+      # can't use @collection_items ||= because on production it will cache the current language
+      all.map{ |item| [item.title, item.value] }
     end
 
     def valid?(value)

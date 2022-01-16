@@ -563,7 +563,7 @@ module RapidResources
       end
 
       control_options = {
-        class: css_class(options, form_control_class + ' custom-select autocomplete')
+        class: css_class(options, select_control_class + ' custom-select autocomplete')
       }
       control_options['data-autocomplete-url'] = options[:url] if options[:url]
       control_options['data-allow-other'] = 'true' if options[:allow_other]

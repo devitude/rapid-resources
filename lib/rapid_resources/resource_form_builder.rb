@@ -549,6 +549,7 @@ module RapidResources
       items = options.delete(:items) || []
       id_field = options.delete(:value_field) || :id
       title_field = options.delete(:title_field) || :title
+      multiple = options.delete(:multiple) || false
 
       selected_id    = nil
       if Hash === options[:selected] && options[:selected].key?(id_field) && options[:selected].key?(title_field)
@@ -569,6 +570,8 @@ module RapidResources
       control_options['data-allow-other'] = 'true' if options[:allow_other]
       control_options['data-placeholder'] = options[:placeholder] if options[:placeholder]
       control_options['data-allow-clear'] = 'true' if options[:allow_clear]
+      # control_options['data-auto-fill'] = 'true' if options[:auto_fill]
+      control_options['multiple'] = 'true' if multiple
       control_options['ref'] = options[:ref] if options[:ref]
       control_options.merge!(options[:html_options] || {})
 

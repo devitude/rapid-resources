@@ -50,6 +50,8 @@ module RapidResources
         [{name => [:date, :time]}]
       elsif @type == COLLECTION_SELECT && @options[:multiple]
         [{name => []}]
+      elsif (@type == AUTOCOMPLETE && options[:multiple])
+        [{name => []}]
       else
         [name]
       end

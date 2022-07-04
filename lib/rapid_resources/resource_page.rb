@@ -179,10 +179,11 @@ module RapidResources
         :"pages.base.#{key}",
         # key.to_s
       ]
-      I18n.translate(:"pages.#{i18n_key}.#{key}", {
+      I18n.translate(
+        :"pages.#{i18n_key}.#{key}",
         count: 1,
         default: defaults,
-        })
+      )
     end
 
     def column_sortable?(field_name)

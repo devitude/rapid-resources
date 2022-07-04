@@ -446,7 +446,7 @@ module RapidResources
 
     def radio_button_list(name, items, html_options = {}, &block)
       inline = html_options.delete(:inline)
-
+      fieldset = html_options.delete(:fieldset)
       help_messages = html_options.delete(:help_messages)
       help_messages = {} unless help_messages.is_a?(Hash)
 
@@ -474,11 +474,14 @@ module RapidResources
       tag_html_options = html_options[:html]
       tag_html_options = {} unless tag_html_options.is_a?(Hash)
 
-      if inline
+      cb_html_data = if inline
         content_tag(:div, cb_items, tag_html_options)
       else
         content_tag(:div, cb_items, { class: 'custom-controls-stacked' }.merge(tag_html_options))
       end
+
+      cb_html_data = content_tag(:fieldset, cb_html_data, fieldset) if fieldset
+      cb_html_data
     end
 
     def date_field(name, value, html_options = {})

@@ -37,9 +37,14 @@ module RapidResources
       v_keys
     end
 
+    def wrap_col
+      options[:wrap_col]
+    end
+
     def each_col
       return unless block_given?
       @fields.each do |field, col|
+        col = col || field.wrap_col
         col = if col.is_a? Numeric
           "col-md-#{col}"
         elsif col == :auto
@@ -50,7 +55,16 @@ module RapidResources
           nil
         end
 
-        col_class = col ? col : check_box_list? ? nil : @empty_col_class
+        col_class = if col == :none
+          nil
+        elsif col
+          col
+        elsif check_box_list?
+          nil
+        else
+          @empty_col_class
+        end
+
         yield field, col_class
       end
     end

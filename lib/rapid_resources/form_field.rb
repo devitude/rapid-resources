@@ -79,6 +79,10 @@ module RapidResources
       model_attribute_keys + (options[:validation_keys] || [])
     end
 
+    def wrap_col
+      options[:wrap_col]
+    end
+
     class << self
       def collection_select(name, items, value_field, title_field, options = {})
         new(COLLECTION_SELECT, name, options.merge({ items: items, value_field: value_field, title_field: title_field }))

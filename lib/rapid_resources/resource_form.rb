@@ -23,7 +23,7 @@ module RapidResources
       end
     end
 
-    def row(title: nil, html_options: nil, options: nil, &block)
+    def row(title: nil, html_options: nil, fields_for: nil, options: nil, &block)
       if block_given?
         get_current_tab
 
@@ -37,11 +37,11 @@ module RapidResources
         @__cur_fields = @field_stack.last
 
         if @field_stack.count == 0
-          @__cur_tab[:fields] << FieldRow.new(*row_fields, title: title, html_options: html_options, options: options)
+          @__cur_tab[:fields] << FieldRow.new(*row_fields, title: title, html_options: html_options, fields_for: fields_for, options: options)
           @__cur_fields = nil
           @field_stack = nil
         else
-          @__cur_fields << FieldRow.new(*row_fields, title: title, html_options: html_options, options: options)
+          @__cur_fields << FieldRow.new(*row_fields, title: title, html_options: html_options, fields_for: fields_for, options: options)
         end
       end
     end

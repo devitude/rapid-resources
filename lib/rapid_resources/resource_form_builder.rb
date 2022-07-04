@@ -56,8 +56,17 @@ module RapidResources
         html_options[:class] << ' check-box-list' if field_or_name.check_box_list?
         @context_stack << field_or_name.options
         row_html = content_tag :div, html_options do
-          field_or_name.each_col do |fld, col_class|
-            concat field(fld, wrap_col: col_class, skip_form_row: true)
+          if field_or_name.fields_for
+            result = fields_for(*field_or_name.fields_for) do |ff|
+              field_or_name.each_col do |fld, col_class|
+                concat ff.field(fld, wrap_col: col_class, skip_form_row: true)
+              end
+            end
+            concat result
+          else
+            field_or_name.each_col do |fld, col_class|
+              concat field(fld, wrap_col: col_class, skip_form_row: true)
+            end
           end
         end
         @context_stack.pop

@@ -1,12 +1,13 @@
 module RapidResources
   class FieldRow
 
-    attr_reader :title, :html_options, :options
+    attr_reader :title, :html_options, :options, :fields_for
 
-    def initialize(*fields, title: nil, html_options: nil, options: nil)
+    def initialize(*fields, title: nil, html_options: nil, fields_for: nil, options: nil)
       @title = title
       @html_options = html_options
       @options = options || {}
+      @fields_for = fields_for
 
       empty_cols = 0
       @fields = fields.map do |fld, col|
@@ -22,7 +23,12 @@ module RapidResources
     end
 
     def params
-      @fields.map{|fld, col| fld.params}
+      fld_params = @fields.map{|fld, col| fld.params}
+      if fields_for
+        [{ :"#{fields_for.first}_attributes" => fld_params.flatten }]
+      else
+        fld_params
+      end
     end
 
     def validation_keys

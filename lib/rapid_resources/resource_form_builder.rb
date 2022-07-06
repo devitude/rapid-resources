@@ -610,7 +610,7 @@ module RapidResources
       html_options = options[:html].dup || {}
       html_options[:class] = css_class(html_options, form_control_class)
       html_options[:readonly] = true
-      @template.text_field_tag(nil, @object.send(name), html_options)
+      @template.text_field_tag(nil, options[:value] || @object.send(name), html_options)
       # @template.text_field('candidate', name, html_options)
     end
 

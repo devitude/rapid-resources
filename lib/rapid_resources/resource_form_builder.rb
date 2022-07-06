@@ -55,29 +55,37 @@ module RapidResources
         html_options = { class: 'form-row' }.merge(field_or_name.html_options || {})
         html_options[:class] << ' check-box-list' if field_or_name.check_box_list?
         @context_stack << field_or_name.options
-        row_html = content_tag :div, html_options do
-          if field_or_name.fields_for
-            result = fields_for(*field_or_name.fields_for) do |ff|
+
+        row_content = ''.html_safe
+        if field_or_name.fields_for
+          result = capture do
+            fields_for(*field_or_name.fields_for) do |ff|
               field_or_name.each_col do |fld, col_class|
                 concat ff.field(fld, wrap_col: col_class, skip_form_row: true)
               end
             end
-            concat result
-          else
-            field_or_name.each_col do |fld, col_class|
-              concat field(fld, wrap_col: col_class, skip_form_row: true)
-            end
+          end
+          row_content << result
+        else
+          field_or_name.each_col do |fld, col_class|
+            row_content << field(fld, wrap_col: col_class, skip_form_row: true)
           end
         end
-        @context_stack.pop
-        return row_html if field_or_name.title.blank?
 
+        @context_stack.pop
+        return content_tag(:div, row_content, html_options) if field_or_name.title.blank?
+
+        row_html_options = html_options
+        wrap_in_row = field_or_name.options[:wrap_section_row] != false
         html_options = field_or_name.html_options&.dup || {}
         html_options[:class] ||= 'form-fields-group'
         return content_tag :fieldset, html_options do
           concat content_tag(:h4, field_or_name.title)
-          concat row_html
-          # concat content_tag(:div, row_html, class: 'card card-body')
+          if wrap_in_row
+            concat content_tag(:div, row_content, row_html_options)
+          else
+            concat row_content
+          end
         end
       end
 

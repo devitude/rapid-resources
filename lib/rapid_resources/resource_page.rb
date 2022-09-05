@@ -450,10 +450,10 @@ module RapidResources
         end
       end
 
-      use_ordered = model_class.respond_to?(:ordered)
       if order_fields.count.positive?
         # apply specified order
         items = items.reorder('') # reset order to none
+        use_ordered = model_class.respond_to?(:ordered)
         order_fields.each do |col, direction|
           if use_ordered
             items = items.ordered(column: col, direction: direction == :desc ? :desc : :asc)
@@ -461,8 +461,16 @@ module RapidResources
             items = items.order(col => direction == :desc ? 'DESC' : 'ASC')
           end
         end
-      elsif use_ordered
+      else
         # apply default order form model
+        items = default_order(items)
+      end
+
+      items
+    end
+
+    def default_order(items)
+      if model_class.respond_to?(:ordered)
         items = items.reorder('') # reset order to none
         items = items.ordered
       end

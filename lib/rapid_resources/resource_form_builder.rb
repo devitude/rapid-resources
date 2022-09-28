@@ -330,7 +330,11 @@ module RapidResources
           end
           # concat content_tag :div, control_html, class: control_class
           concat control_html
-          concat(content_tag(:small, help_text, class: 'form-text text-muted')) if help_text.present?
+          if help_text.present?
+            small_help_text = options[:small_help_text] != false
+            p_class = small_help_text ? 'small text-muted' : 'form-text'
+            concat content_tag(:p, help_text, class: p_class)
+          end
           concat content_tag(:div, errors.join('; '), class: 'invalid-feedback') if errors.any?
         end
 

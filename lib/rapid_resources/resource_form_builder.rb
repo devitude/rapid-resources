@@ -79,12 +79,21 @@ module RapidResources
         wrap_in_row = field_or_name.options[:wrap_section_row] != false
         html_options = field_or_name.html_options&.dup || {}
         html_options[:class] ||= 'form-fields-group'
-        return content_tag :fieldset, html_options do
-          concat content_tag(:h4, field_or_name.title)
-          if wrap_in_row
-            concat content_tag(:div, row_content, row_html_options)
-          else
-            concat row_content
+
+        if field_or_name.check_box_list?
+          inline = field_or_name.options.delete(:inline)
+          return content_tag :div, class: "form-group checkbox-list #{' checkbox-list-inline' if inline}" do
+            concat content_tag(:label, field_or_name.title)
+            concat content_tag(:div, row_content, class: "checkbox-list")
+          end
+        else
+          return content_tag :fieldset, html_options do
+              concat content_tag(:h4, field_or_name.title)
+            if wrap_in_row
+              concat content_tag(:div, row_content, row_html_options)
+            else
+              concat row_content
+            end
           end
         end
       end

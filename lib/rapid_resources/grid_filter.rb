@@ -162,7 +162,7 @@ module RapidResources
     def setup_list_items(first_item_default)
       sel_value = [*selected_value].map(&:to_s)
 
-      if sel_value.any?(:present?)
+      if sel_value.any?(&:present?)
         if items.is_a?(Array)
           # leave only valid selected values
           selected_values = sel_value.select do |val|

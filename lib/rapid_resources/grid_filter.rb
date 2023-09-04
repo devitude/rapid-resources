@@ -160,11 +160,21 @@ module RapidResources
     end
 
     def setup_list_items(first_item_default)
-      return if selected_value.present?
+      sel_value = [*selected_value].map(&:to_s)
 
-      # get selected item
-      sel_value = selected_value.to_s
-      sel_item = items.find { |item| item[:type] == 'item' && item[:value] == sel_value }
+      if sel_value.any?(:present?)
+        if items.is_a?(Array)
+          # leave only valid selected values
+          selected_values = sel_value.select do |val|
+            items.find { |v| v[:type] == 'item' && v[:value] == val }
+          end
+          self.selected_value = selected_values
+        end
+        return
+      end
+
+      # get selected item when no item has been selected / setup initial value
+      sel_item = items.find { |item| item[:type] == 'item' && sel_value.include?(item[:value]) }
       if first_item_default
         sel_item ||= items.find { |item| item[:type] == 'item' } # use first item as selected one
       end

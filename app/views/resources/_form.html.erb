@@ -1,8 +1,8 @@
 <% content_for :head_tags do %>
   <%#= javascript_include_tag '/js/tinymce/tinymce.min.js' %>
   <%#= javascript_include_tag '/js/tinymce/jquery.tinymce.min.js' %>
-  <%= javascript_pack_tag 'vendor-wysiwyg.js', 'wysiwyg.js' %>
-  <%= stylesheet_pack_tag 'wysiwyg.css' %>
+  <%= vite_typescript_tag 'wysiwyg' %>
+  <%= vite_stylesheet_tag 'wysiwyg.scss' %>
 <% end if page.with_editor? && !@modal %>
 
 <% if page.display_form_errors && errors = page.resource_errors(item, exclude_form_fields: true) and errors.any? %>
